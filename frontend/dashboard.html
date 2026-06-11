@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LexAI - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<style>
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Responsive Typography */
+    @media (max-width: 640px) {
+        button {
+            min-height: 44px;
+            font-size: 14px;
+        }
+        
+        span.material-symbols-outlined {
+            font-size: 20px !important;
+        }
+    }
+    
+    /* Ensure readable text on small screens */
+    @media (max-width: 640px) {
+        body {
+            font-size: 14px;
+        }
+        
+        h1 {
+            font-size: 18px;
+        }
+        
+        h2 {
+            font-size: 20px;
+        }
+        
+        h3 {
+            font-size: 16px;
+        }
+    }
+    
+    /* Improve touch targets */
+    @media (max-width: 640px) {
+        nav button {
+            padding: 8px 12px;
+        }
+    }
+</style>
+</head>
+<body class="bg-[#111415] text-[#e1e3e4] min-h-screen">
+<!-- Header -->
+<nav class="glass-panel border-b border-[#3b494c] sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-4">
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="material-symbols-outlined text-[#00daf3] text-6xl sm:text-8xl" style="font-size: 28px;">gavel</span>
+            <h1 class="text-lg sm:text-2xl font-bold truncate">LexAI</h1>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-4 flex-col sm:flex-row">
+            <span id="user-name" class="text-[#bac9cc] text-xs sm:text-base text-right">Loading...</span>
+            <button id="logout-btn" class="bg-[#0050ee] hover:bg-[#0040cc] px-4 sm:px-6 py-2 rounded-lg transition-colors text-xs sm:text-base whitespace-nowrap active:scale-95">Logout</button>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+    <div class="glass-panel rounded-xl p-6 sm:p-8 mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 sm:mb-6">
+            <div class="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#282a2b] border border-[#3b494c] flex-shrink-0">
+                <span class="material-symbols-outlined text-[#00daf3]" style="font-size: 28px;">check_circle</span>
+            </div>
+            <div class="w-full">
+                <h2 class="text-2xl sm:text-3xl font-bold">Welcome to LexAI</h2>
+                <p class="text-[#bac9cc] mt-1 sm:mt-2 text-sm sm:text-base">You are successfully logged in</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Info Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div class="glass-panel rounded-xl p-4 sm:p-6">
+            <h3 class="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm sm:text-base">person</span>
+                <span class="truncate">Profile Information</span>
+            </h3>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <p class="text-[#bac9cc] text-xs sm:text-sm">Full Name</p>
+                    <p class="text-base sm:text-lg font-semibold break-words" id="profile-name">Loading...</p>
+                </div>
+                <div>
+                    <p class="text-[#bac9cc] text-xs sm:text-sm">Email</p>
+                    <p class="text-base sm:text-lg font-semibold break-words" id="profile-email">Loading...</p>
+                </div>
+                <div>
+                    <p class="text-[#bac9cc] text-xs sm:text-sm">Provider</p>
+                    <p class="text-base sm:text-lg font-semibold" id="profile-provider">Email/Password</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-panel rounded-xl p-4 sm:p-6">
+            <h3 class="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm sm:text-base">security</span>
+                <span class="truncate">Authentication Status</span>
+            </h3>
+            <div class="space-y-3 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#34A853] text-base">check</span>
+                    <span class="text-sm sm:text-base">Email Verified</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#34A853] text-base">check</span>
+                    <span class="text-sm sm:text-base">JWT Token Active</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#34A853] text-base">check</span>
+                    <span class="text-sm sm:text-base">Session Active</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="glass-panel rounded-xl p-4 sm:p-6">
+        <h3 class="font-bold text-base sm:text-lg mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm sm:text-base">dashboard</span>
+            <span class="truncate">Available Features</span>
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div class="bg-[#1d2021] rounded-lg p-4 border border-[#3b494c] hover:border-[#00daf3] transition-colors cursor-pointer">
+                <span class="material-symbols-outlined text-[#00daf3] text-2xl mb-2">description</span>
+                <h4 class="font-semibold text-sm sm:text-base mb-1">Contract Analysis</h4>
+                <p class="text-[#bac9cc] text-xs sm:text-sm">Analyze contracts for risks</p>
+            </div>
+            <div class="bg-[#1d2021] rounded-lg p-4 border border-[#3b494c] hover:border-[#00daf3] transition-colors cursor-pointer">
+                <span class="material-symbols-outlined text-[#00daf3] text-2xl mb-2">score</span>
+                <h4 class="font-semibold text-sm sm:text-base mb-1">Risk Scoring</h4>
+                <p class="text-[#bac9cc] text-xs sm:text-sm">Get automated risk assessments</p>
+            </div>
+            <div class="bg-[#1d2021] rounded-lg p-4 border border-[#3b494c] hover:border-[#00daf3] transition-colors cursor-pointer">
+                <span class="material-symbols-outlined text-[#00daf3] text-2xl mb-2">history</span>
+                <h4 class="font-semibold text-sm sm:text-base mb-1">History</h4>
+                <p class="text-[#bac9cc] text-xs sm:text-sm">View past analyses</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// Handle OAuth token from URL
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
+if (token) {
+    localStorage.setItem('token', token);
+    // Remove token from URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+// Check authentication
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/login.html';
+        return;
+    }
+    loadUserInfo();
+}
+
+// Load user information
+async function loadUserInfo() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const user = await response.json();
+            document.getElementById('user-name').textContent = user.fullname;
+            document.getElementById('profile-name').textContent = user.fullname;
+            document.getElementById('profile-email').textContent = user.email;
+            if (user.oauth_provider) {
+                document.getElementById('profile-provider').textContent = 
+                    user.oauth_provider.charAt(0).toUpperCase() + user.oauth_provider.slice(1);
+            }
+        } else {
+            // Token invalid
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+    } catch (error) {
+        console.error('Error loading user:', error);
+        // Fallback to user data from localStorage
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.fullname) {
+                document.getElementById('user-name').textContent = user.fullname;
+                document.getElementById('profile-name').textContent = user.fullname;
+                document.getElementById('profile-email').textContent = user.email;
+            }
+        } catch (e) {
+            console.error('Error parsing user data:', e);
+        }
+    }
+}
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', async () => {
+    try {
+        const token = localStorage.getItem('token');
+        await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+    } finally {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login.html';
+    }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', checkAuth);
+</script>
+
+</body></html>

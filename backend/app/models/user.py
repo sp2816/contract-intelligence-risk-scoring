@@ -1,6 +1,7 @@
 from datetime import datetime
+# pyrefly: ignore [missing-import]
 from werkzeug.security import generate_password_hash, check_password_hash
-from main import db
+from extensions import db
 
 class User(db.Model):
     __tablename__ = 'users'

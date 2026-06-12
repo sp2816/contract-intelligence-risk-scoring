@@ -1,6 +1,8 @@
+# pyrefly: ignore [missing-import]
 from datetime import timedelta
+# pyrefly: ignore [missing-import]  
 from flask_jwt_extended import create_access_token
-from main import db
+from extensions import db
 from models.user import User
 
 class AuthService:
@@ -21,7 +23,7 @@ class AuthService:
         
         # Generate token
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),
             expires_delta=timedelta(days=30)
         )
         
@@ -43,7 +45,7 @@ class AuthService:
         
         # Generate token
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),
             expires_delta=timedelta(days=30)
         )
         
@@ -51,4 +53,3 @@ class AuthService:
             'token': access_token,
             'user': user.to_dict()
         }, None
-

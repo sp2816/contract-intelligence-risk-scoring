@@ -1,8 +1,10 @@
+# pyrefly: ignore [missing-import]
 from flask import Blueprint, request, jsonify
+# pyrefly: ignore [missing-import] 
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.auth import AuthService
 from models.user import User
-from main import db
+from extensions import db
 
 auth_bp = Blueprint('auth', __name__)
 

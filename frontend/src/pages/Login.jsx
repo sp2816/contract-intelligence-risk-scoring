@@ -137,6 +137,16 @@ function Login() {
                 <p className="font-medium text-slate-100">AI Contract Intelligence</p>
                 <p className="mt-2 text-slate-400">Modern enterprise SaaS for legal teams with adaptive risk scoring, clause intelligence, and contract reliability insights.</p>
               </div>
+
+              <p className="text-center text-sm text-slate-400">
+                Don't have an account?{' '}
+                <Link
+                  to="/register"
+                  className="font-semibold text-sky-300 transition hover:text-sky-200 hover:underline underline-offset-4"
+                >
+                  Sign up
+                </Link>
+              </p>
             </div>
           </div>
         </section>

@@ -1,16 +1,13 @@
+# pyrefly: ignore [missing-import]
 from flask import Flask
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
+from extensions import db, jwt
 import os
 
 # Load environment variables
 load_dotenv()
-
-# Initialize extensions
-db = SQLAlchemy()
-jwt = JWTManager()
 
 def create_app():
     app = Flask(__name__)
@@ -32,6 +29,7 @@ def create_app():
     
     # Create database tables
     with app.app_context():
+        from models.user import User  # ensure model is imported before create_all
         db.create_all()
     
     # Register blueprints

@@ -4,8 +4,6 @@
 
 :root {
   color-scheme: dark;
-  color: #111827;
-  background-color: #f8fafc;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-feature-settings: 'cv02' on, 'cv03' on, 'cv04' on, 'cv11' on;
   text-rendering: optimizeLegibility;
@@ -20,12 +18,13 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  color: #0f172a;
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 #root {
   min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
 
 * {
@@ -40,15 +39,26 @@ select {
 }
 
 ::selection {
-  background-color: #7c3aed;
+  background-color: #6366f1;
   color: white;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle at top left, rgba(124, 58, 237, 0.1), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.08), transparent 28%);
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+

@@ -13,6 +13,7 @@ class User(db.Model):
     oauth_id = db.Column(db.String(255), unique=True, nullable=True)
     oauth_provider = db.Column(db.String(50), nullable=True)  # 'google', 'github'
     is_active = db.Column(db.Boolean, default=True)
+    preferences = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -23,10 +24,18 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
     
     def to_dict(self):
+        import json
+        prefs = {}
+        if self.preferences:
+            try:
+                prefs = json.loads(self.preferences)
+            except Exception:
+                pass
         return {
             'id': self.id,
             'fullname': self.fullname,
             'email': self.email,
             'oauth_provider': self.oauth_provider,
+            'preferences': prefs,
             'created_at': self.created_at.isoformat()
         }

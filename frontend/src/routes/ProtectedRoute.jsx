@@ -7,9 +7,9 @@ function ProtectedRoute() {
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-slate-50 text-slate-700">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-soft">
-          <p className="text-lg font-semibold">Loading your workspace...</p>
+      <div className="min-h-screen grid place-items-center bg-slate-950 text-slate-100">
+        <div className="rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-dark-soft animate-pulse-soft">
+          <p className="text-lg font-semibold text-slate-300">Loading your workspace...</p>
         </div>
       </div>
     )

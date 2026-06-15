@@ -77,3 +77,35 @@ def get_current_user():
 def logout():
     """Logout user (token-based, just return success)"""
     return jsonify({'message': 'Logged out successfully'}), 200
+
+# Update User Preferences
+@auth_bp.route('/preferences', methods=['PUT'])
+@jwt_required()
+def update_preferences():
+    """Update preferences for the current user"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+        
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'No data provided'}), 400
+        
+    import json
+    # Merge existing preferences or set new ones
+    current_prefs = {}
+    if user.preferences:
+        try:
+            current_prefs = json.loads(user.preferences)
+        except Exception:
+            pass
+            
+    # Update preferences dictionary with new values
+    current_prefs.update(data)
+    
+    user.preferences = json.dumps(current_prefs)
+    db.session.commit()
+    
+    return jsonify(user.to_dict()), 200

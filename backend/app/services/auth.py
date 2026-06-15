@@ -15,7 +15,13 @@ class AuthService:
             return None, 'Email already registered'
         
         # Create new user
-        user = User(fullname=fullname, email=email)
+        import json
+        default_prefs = json.dumps({
+            "theme": "dark",
+            "notifications": True,
+            "defaultView": "dashboard"
+        })
+        user = User(fullname=fullname, email=email, preferences=default_prefs)
         user.set_password(password)
         
         db.session.add(user)

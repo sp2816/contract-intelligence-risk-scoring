@@ -15,3 +15,8 @@ export async function register(payload) {
   const response = await axiosClient.post('/auth/signup', postData)
   return response
 }
+
+export async function updatePreferences(preferences) {
+  const response = await axiosClient.put('/auth/preferences', preferences)
+  return response
+}

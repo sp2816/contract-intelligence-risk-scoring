@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { login as loginRequest, register as registerRequest } from '../api/auth.js'
+import { login as loginRequest, register as registerRequest, updatePreferences as updatePreferencesRequest } from '../api/auth.js'
 
 const AuthContext = createContext(null)
 
@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
 
     try {
       const response = await loginRequest(credentials)
-      setUser(response.user)
+      setUser({ ...response.user, token: response.token })
       return response
     } catch (err) {
       setError(err?.message || 'Unable to sign in')
@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
 
     try {
       const response = await registerRequest(payload)
-      setUser(response.user)
+      setUser({ ...response.user, token: response.token })
       return response
     } catch (err) {
       setError(err?.message || 'Unable to create account')
@@ -51,12 +51,28 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const updatePrefs = async (newPrefs) => {
+    if (!user) return
+    try {
+      const response = await updatePreferencesRequest(newPrefs)
+      setUser(currentUser => ({
+        ...currentUser,
+        ...response,
+        token: currentUser.token
+      }))
+      return response
+    } catch (err) {
+      console.error('Failed to update preferences:', err)
+      throw err
+    }
+  }
+
   const logout = () => {
     setUser(null)
   }
 
   const value = useMemo(
-    () => ({ user, loading, error, login, register, logout }),
+    () => ({ user, loading, error, login, register, logout, updatePrefs }),
     [user, loading, error],
   )
 

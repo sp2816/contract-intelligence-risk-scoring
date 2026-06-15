@@ -1,13 +1,26 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
+import { Menu, X } from 'lucide-react'
 
-function Navbar() {
+function Navbar({ onToggleMenu, isMenuOpen }) {
   const { user, logout } = useAuth()
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
+          {/* Mobile hamburger menu toggle button */}
+          {user && (
+            <button
+              type="button"
+              onClick={onToggleMenu}
+              className="inline-flex items-center justify-center rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition lg:hidden"
+              aria-label={isMenuOpen ? 'Close main menu' : 'Open main menu'}
+            >
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          )}
+
           <div className="rounded-2xl bg-brand-500 px-3 py-1 text-sm font-semibold text-white shadow-dark-soft">
             AI Contract Intelligence
           </div>
@@ -43,3 +56,4 @@ function Navbar() {
 }
 
 export default Navbar
+

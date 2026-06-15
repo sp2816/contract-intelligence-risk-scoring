@@ -22,6 +22,7 @@ function Login() {
     }
   }
 
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-10 text-slate-100 sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.35),_transparent_38%)] opacity-70" />
@@ -131,6 +132,8 @@ function Login() {
                   {loading ? 'Signing in…' : 'Continue'}
                   <ArrowRight className="h-4 w-4" />
                 </button>
+
+
               </form>
 
               <div className="rounded-3xl border border-slate-700/60 bg-slate-950/70 p-4 text-sm text-slate-300 shadow-xl shadow-slate-950/20">

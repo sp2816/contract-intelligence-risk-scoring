@@ -9,9 +9,10 @@
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    full_name VARCHAR(255) NOT NULL,
+    fullname VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    preferences TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

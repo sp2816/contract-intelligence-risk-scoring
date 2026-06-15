@@ -8,6 +8,26 @@ const axiosClient = axios.create({
   timeout: 15000,
 })
 
+axiosClient.interceptors.request.use(
+  (config) => {
+    const userString = window.localStorage.getItem('ai-contract-user')
+    if (userString) {
+      try {
+        const user = JSON.parse(userString)
+        if (user && user.token) {
+          config.headers['Authorization'] = `Bearer ${user.token}`
+        }
+      } catch (e) {
+        console.error('Error parsing user from localStorage:', e)
+      }
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
 axiosClient.interceptors.response.use(
   (response) => response.data,
   (error) => {

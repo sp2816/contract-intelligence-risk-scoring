@@ -62,3 +62,88 @@ select {
   background: #475569;
 }
 
+/* ==========================================
+   Light Mode Theme Overrides
+   ========================================== */
+.light-mode {
+  color-scheme: light;
+}
+
+.light-mode body {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.light-mode #root {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.light-mode main.overflow-hidden,
+.light-mode aside,
+.light-mode section,
+.light-mode div.bg-slate-950,
+.light-mode div.bg-slate-900,
+.light-mode div.bg-slate-900\/80,
+.light-mode div.bg-slate-900\/40,
+.light-mode div.bg-slate-950\/70,
+.light-mode div.bg-slate-950\/60,
+.light-mode div.bg-slate-950\/50,
+.light-mode div.bg-slate-950\/40,
+.light-mode div.bg-slate-900\/50,
+.light-mode div.bg-gradient-to-br {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #1e293b !important;
+}
+
+.light-mode h1,
+.light-mode h2,
+.light-mode h3,
+.light-mode h4,
+.light-mode .text-white,
+.light-mode .text-slate-100,
+.light-mode .text-slate-200,
+.light-mode .text-slate-300 {
+  color: #0f172a !important;
+}
+
+.light-mode p,
+.light-mode span,
+.light-mode label,
+.light-mode .text-slate-400 {
+  color: #475569 !important;
+}
+
+.light-mode .border-slate-800,
+.light-mode .border-slate-700,
+.light-mode .border-slate-700\/60,
+.light-mode .border-white\/10 {
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode select,
+.light-mode input[type="text"],
+.light-mode input[type="email"],
+.light-mode input[type="password"] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode select:focus,
+.light-mode input:focus {
+  background-color: #ffffff !important;
+}
+
+.light-mode ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.light-mode ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

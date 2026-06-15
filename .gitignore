@@ -4,6 +4,10 @@
 venv/
 env/
 ENV/
+.venv/
+cirs_env/
+backend/.venv/
+backend/cirs_env/
 
 __pycache__/
 *.pyc

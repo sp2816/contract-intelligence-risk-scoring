@@ -3,21 +3,27 @@ import { Outlet, NavLink } from 'react-router-dom'
 import Navbar from './Navbar.jsx'
 import Sidebar from './Sidebar.jsx'
 import routePaths from '../../utils/routes.js'
-import { X, ShieldAlert } from 'lucide-react'
+import { X, ShieldAlert, LayoutDashboard, MessageSquare, FileText, User } from 'lucide-react'
 
 const mobileNavItems = [
-  { label: 'Dashboard', path: routePaths.dashboard },
-  { label: 'Chatbot', path: routePaths.chatbot },
-  { label: 'Contract Analysis', path: routePaths.contractAnalysis },
-  { label: 'Profile', path: routePaths.profile },
+  { label: 'Dashboard', path: routePaths.dashboard, icon: LayoutDashboard },
+  { label: 'Chatbot', path: routePaths.chatbot, icon: MessageSquare },
+  { label: 'Contract Analysis', path: routePaths.contractAnalysis, icon: FileText },
+  { label: 'Profile', path: routePaths.profile, icon: User },
 ]
 
 function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   return (
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar onToggleMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isMenuOpen={isMobileMenuOpen} />
+      <Navbar 
+        onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        isMobileMenuOpen={isMobileMenuOpen}
+        onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isSidebarCollapsed={isSidebarCollapsed}
+      />
       
       {/* Mobile Menu Drawer Overlay */}
       {isMobileMenuOpen && (
@@ -51,13 +57,14 @@ function AppShell() {
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                    `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
                       isActive 
                         ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' 
                         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                     }`
                   }
                 >
+                  <item.icon className="h-5 w-5" />
                   {item.label}
                 </NavLink>
               ))}
@@ -76,8 +83,12 @@ function AppShell() {
       )}
 
       {/* Main Grid Layout */}
-      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8">
-        <Sidebar />
+      <div 
+        className={`mx-auto grid w-full flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:grid-cols-[80px_minmax(0,1fr)] max-w-[1600px]' : 'lg:grid-cols-[280px_minmax(0,1fr)] max-w-7xl'
+        }`}
+      >
+        <Sidebar isCollapsed={isSidebarCollapsed} />
         <main className="overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-900/40 p-6 shadow-dark-soft backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/40">
           <Outlet />
         </main>
@@ -87,4 +98,3 @@ function AppShell() {
 }
 
 export default AppShell
-

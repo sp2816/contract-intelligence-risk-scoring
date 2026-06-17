@@ -1,88 +1,119 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { login as loginRequest, register as registerRequest, updatePreferences as updatePreferencesRequest } from '../api/auth.js'
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  login as apiLogin, 
+  register as apiRegister, 
+  logout as apiLogout, 
+  getCurrentUser 
+} from '../api/authApi';
+import api from '../api/axios';
 
-const AuthContext = createContext(null)
+const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const stored = window.localStorage.getItem('ai-contract-user')
-    return stored ? JSON.parse(stored) : null
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Initialize auth state
   useEffect(() => {
-    if (user) {
-      window.localStorage.setItem('ai-contract-user', JSON.stringify(user))
+    const initAuth = async () => {
+      if (token) {
+        try {
+          const response = await getCurrentUser();
+          setUser(response.user || response); // Adjust based on your API response structure
+        } catch (err) {
+          console.error("Failed to fetch user, token might be expired", err);
+          handleLogout(); // clear invalid token
+        }
+      }
+      setLoading(false);
+    };
+
+    initAuth();
+  }, [token]);
+
+  // Handle setting token in local storage and state
+  const handleSetToken = (newToken) => {
+    if (newToken) {
+      localStorage.setItem('token', newToken);
+      setToken(newToken);
     } else {
-      window.localStorage.removeItem('ai-contract-user')
+      localStorage.removeItem('token');
+      setToken(null);
     }
-  }, [user])
+  };
 
   const login = async (credentials) => {
-    setLoading(true)
-    setError(null)
-
+    setLoading(true);
+    setError(null);
     try {
-      const response = await loginRequest(credentials)
-      setUser({ ...response.user, token: response.token })
-      return response
+      const data = await apiLogin(credentials);
+      handleSetToken(data.token);
+      setUser(data.user);
+      return data;
     } catch (err) {
-      setError(err?.message || 'Unable to sign in')
-      throw err
+      const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const register = async (payload) => {
-    setLoading(true)
-    setError(null)
-
+  const register = async (userData) => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await registerRequest(payload)
-      setUser({ ...response.user, token: response.token })
-      return response
+      const data = await apiRegister(userData);
+      handleSetToken(data.token);
+      setUser(data.user);
+      return data;
     } catch (err) {
-      setError(err?.message || 'Unable to create account')
-      throw err
+      const errorMessage = err.response?.data?.message || 'Registration failed.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const updatePrefs = async (newPrefs) => {
-    if (!user) return
+  const handleLogout = async () => {
+    setLoading(true);
     try {
-      const response = await updatePreferencesRequest(newPrefs)
-      setUser(currentUser => ({
-        ...currentUser,
-        ...response,
-        token: currentUser.token
-      }))
-      return response
-    } catch (err) {
-      console.error('Failed to update preferences:', err)
-      throw err
+      // Optional: notify server about logout
+      if (token) {
+        await apiLogout().catch(console.error);
+      }
+    } finally {
+      handleSetToken(null);
+      setUser(null);
+      setLoading(false);
     }
-  }
+  };
 
-  const logout = () => {
-    setUser(null)
-  }
+  const value = {
+    user,
+    token,
+    loading,
+    error,
+    isAuthenticated: !!token && !!user,
+    login,
+    register,
+    logout: handleLogout,
+  };
 
-  const value = useMemo(
-    () => ({ user, loading, error, login, register, logout, updatePrefs }),
-    [user, loading, error],
-  )
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuthContext() {
-  const context = useContext(AuthContext)
+export const useAuth = () => {
+  const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuthContext must be used within AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
-}
+  return context;
+};

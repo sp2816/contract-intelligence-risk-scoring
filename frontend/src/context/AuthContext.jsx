@@ -1,97 +1,150 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  login as apiLogin, 
-  register as apiRegister, 
-  logout as apiLogout, 
-  getCurrentUser 
-} from '../api/authApi';
-import api from '../api/axios';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import {
+  login as apiLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  getCurrentUser,
+} from '../api/auth'
+import {
+  getToken,
+  setToken,
+  clearSession,
+  getStoredUser,
+  setStoredUser,
+  isTokenExpired,
+} from '../utils/tokenManager'
 
-const AuthContext = createContext();
+const AuthContext = createContext(null)
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// ──────────────────────────────────────────────────────────────────────────────
+// Provider
+// ──────────────────────────────────────────────────────────────────────────────
 
-  // Initialize auth state
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => getStoredUser())
+  const [token, setTokenState] = useState(() => getToken())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // ---------- Persist token + sync React state ─────────────────────────────
+  const persistToken = useCallback((newToken) => {
+    setToken(newToken) // localStorage
+    setTokenState(newToken) // React state
+  }, [])
+
+  const persistUser = useCallback((newUser) => {
+    setStoredUser(newUser)
+    setUser(newUser)
+  }, [])
+
+  // ---------- Boot: revalidate session on mount ────────────────────────────
   useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const response = await getCurrentUser();
-          setUser(response.user || response); // Adjust based on your API response structure
-        } catch (err) {
-          console.error("Failed to fetch user, token might be expired", err);
-          handleLogout(); // clear invalid token
+    let cancelled = false
+
+    async function initAuth() {
+      const storedToken = getToken()
+      if (!storedToken || isTokenExpired()) {
+        clearSession()
+        setUser(null)
+        setTokenState(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const data = await getCurrentUser()
+        if (!cancelled) {
+          const userData = data.user || data
+          persistUser(userData)
         }
+      } catch {
+        // Token invalid / server unreachable — clear everything
+        if (!cancelled) {
+          clearSession()
+          setUser(null)
+          setTokenState(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      setLoading(false);
-    };
-
-    initAuth();
-  }, [token]);
-
-  // Handle setting token in local storage and state
-  const handleSetToken = (newToken) => {
-    if (newToken) {
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-    } else {
-      localStorage.removeItem('token');
-      setToken(null);
     }
-  };
 
-  const login = async (credentials) => {
-    setLoading(true);
-    setError(null);
+    initAuth()
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------- Login ────────────────────────────────────────────────────────
+  const login = useCallback(async (credentials) => {
+    setLoading(true)
+    setError(null)
     try {
-      const data = await apiLogin(credentials);
-      handleSetToken(data.token);
-      setUser(data.user);
-      return data;
+      const data = await apiLogin(credentials)
+      persistToken(data.token || data.access_token)
+      persistUser(data.user || data)
+      return data
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const msg = err?.message || 'Login failed. Please check your credentials.'
+      setError(msg)
+      throw err
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [persistToken, persistUser])
 
-  const register = async (userData) => {
-    setLoading(true);
-    setError(null);
+  // ---------- Register ─────────────────────────────────────────────────────
+  const register = useCallback(async (userData) => {
+    setLoading(true)
+    setError(null)
     try {
-      const data = await apiRegister(userData);
-      handleSetToken(data.token);
-      setUser(data.user);
-      return data;
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Registration failed.';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    setLoading(true);
-    try {
-      // Optional: notify server about logout
-      if (token) {
-        await apiLogout().catch(console.error);
+      const data = await apiRegister(userData)
+      // Some backends auto-login after signup (return token); others don't.
+      if (data.token || data.access_token) {
+        persistToken(data.token || data.access_token)
+        persistUser(data.user || data)
       }
+      return data
+    } catch (err) {
+      const msg = err?.message || 'Registration failed. Please try again.'
+      setError(msg)
+      throw err
     } finally {
-      handleSetToken(null);
-      setUser(null);
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [persistToken, persistUser])
 
+  // ---------- Logout ───────────────────────────────────────────────────────
+  const logout = useCallback(async () => {
+    setLoading(true)
+    try {
+      await apiLogout().catch(() => {})
+    } finally {
+      clearSession()
+      setUser(null)
+      setTokenState(null)
+      setError(null)
+      setLoading(false)
+    }
+  }, [])
+
+  // ---------- Clear error helper ───────────────────────────────────────────
+  const clearError = useCallback(() => setError(null), [])
+
+  // ---------- Update Preferences ───────────────────────────────────────────
+  // Merges new prefs into the stored user object (local-only; extend with API
+  // call here when the backend endpoint is ready).
+  const updatePrefs = useCallback(async (prefs) => {
+    const updated = {
+      ...(user || {}),
+      preferences: {
+        ...(user?.preferences || {}),
+        ...prefs,
+      },
+    }
+    persistUser(updated)
+    return updated
+  }, [user, persistUser])
+
+  // ---------- Context value ────────────────────────────────────────────────
   const value = {
     user,
     token,
@@ -100,20 +153,29 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!token && !!user,
     login,
     register,
-    logout: handleLogout,
-  };
+    logout,
+    clearError,
+    updatePrefs,
+  }
 
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// ──────────────────────────────────────────────────────────────────────────────
+// Hook — exported under BOTH names so every consumer works
+// ──────────────────────────────────────────────────────────────────────────────
+
+export function useAuthContext() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within an <AuthProvider>')
+  return ctx
+}
+
+// Alias used by ProtectedRoute and some components
+export const useAuth = useAuthContext
+
+export default AuthContext

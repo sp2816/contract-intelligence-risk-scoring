@@ -62,88 +62,274 @@ select {
   background: #475569;
 }
 
+
 /* ==========================================
    Light Mode Theme Overrides
+   ThemeContext sets data-theme="light" on <html>
    ========================================== */
-.light-mode {
+
+[data-theme="light"] {
   color-scheme: light;
 }
 
-.light-mode body {
-  background: #f8fafc;
+[data-theme="light"] body {
+  background: #f1f5f9;
   color: #1e293b;
 }
 
-.light-mode #root {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+[data-theme="light"] #root {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-.light-mode main.overflow-hidden,
-.light-mode aside,
-.light-mode section,
-.light-mode div.bg-slate-950,
-.light-mode div.bg-slate-900,
-.light-mode div.bg-slate-900\/80,
-.light-mode div.bg-slate-900\/40,
-.light-mode div.bg-slate-950\/70,
-.light-mode div.bg-slate-950\/60,
-.light-mode div.bg-slate-950\/50,
-.light-mode div.bg-slate-950\/40,
-.light-mode div.bg-slate-900\/50,
-.light-mode div.bg-gradient-to-br {
+/* ──────────────────────────
+   Global background overrides
+   ────────────────────────── */
+[data-theme="light"] [class*="bg-slate-9"],
+[data-theme="light"] [class*="bg-slate-8"],
+[data-theme="light"] [class*="from-slate-9"],
+[data-theme="light"] [class*="from-slate-8"],
+[data-theme="light"] [class*="to-slate-9"],
+[data-theme="light"] [class*="to-slate-8"],
+[data-theme="light"] [class*="via-slate-"] {
   background-color: #ffffff !important;
   background-image: none !important;
-  color: #1e293b !important;
 }
 
-.light-mode h1,
-.light-mode h2,
-.light-mode h3,
-.light-mode h4,
-.light-mode .text-white,
-.light-mode .text-slate-100,
-.light-mode .text-slate-200,
-.light-mode .text-slate-300 {
-  color: #0f172a !important;
+/* Gradient backgrounds — override to white */
+[data-theme="light"] [class*="bg-gradient-to-"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
 }
 
-.light-mode p,
-.light-mode span,
-.light-mode label,
-.light-mode .text-slate-400 {
-  color: #475569 !important;
+/* Ring / border-based dark backgrounds */
+[data-theme="light"] [class*="ring-white\\/10"],
+[data-theme="light"] [class*="ring-white\\/5"] {
+  --tw-ring-color: rgba(226, 232, 240, 0.5) !important;
 }
 
-.light-mode .border-slate-800,
-.light-mode .border-slate-700,
-.light-mode .border-slate-700\/60,
-.light-mode .border-white\/10 {
+/* ──────────────────────────
+   Layout elements
+   ────────────────────────── */
+
+/* Header / Navbar */
+[data-theme="light"] header {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-bottom-color: #e2e8f0 !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Sidebar */
+[data-theme="light"] aside {
+  background: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
 
-.light-mode select,
-.light-mode input[type="text"],
-.light-mode input[type="email"],
-.light-mode input[type="password"] {
+/* Main content area */
+[data-theme="light"] main {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* ──────────────────────────
+   Text color overrides
+   ────────────────────────── */
+[data-theme="light"] .text-white {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .text-slate-100,
+[data-theme="light"] .text-slate-200 {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .text-slate-300 {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .text-slate-400 {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4 {
+  color: #0f172a !important;
+}
+
+/* ──────────────────────────
+   Border overrides
+   ────────────────────────── */
+[data-theme="light"] [class*="border-slate-7"],
+[data-theme="light"] [class*="border-slate-8"],
+[data-theme="light"] [class*="border-slate-9"],
+[data-theme="light"] [class*="border-white\\/"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* ──────────────────────────
+   Form elements
+   ────────────────────────── */
+[data-theme="light"] select,
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] input[type="password"],
+[data-theme="light"] input[type="search"],
+[data-theme="light"] textarea {
   background-color: #f8fafc !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
 
-.light-mode select:focus,
-.light-mode input:focus {
+[data-theme="light"] select:focus,
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus {
   background-color: #ffffff !important;
+  border-color: #38bdf8 !important;
 }
 
-.light-mode ::-webkit-scrollbar-track {
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* ──────────────────────────
+   Table overrides (Dashboard)
+   ────────────────────────── */
+[data-theme="light"] table {
+  color: #1e293b;
+}
+
+[data-theme="light"] th {
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] td {
+  border-color: #f1f5f9 !important;
+}
+
+[data-theme="light"] tr:hover {
+  background-color: #f8fafc !important;
+}
+
+[data-theme="light"] td .text-slate-200 {
+  color: #1e293b !important;
+}
+
+/* ──────────────────────────
+   Card & panel surfaces
+   ────────────────────────── */
+
+/* All div-like panels with dark backgrounds */
+[data-theme="light"] div[class*="bg-slate-950"],
+[data-theme="light"] div[class*="bg-slate-900"],
+[data-theme="light"] section[class*="bg-slate-9"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Blockquotes */
+[data-theme="light"] blockquote {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* ──────────────────────────
+   Recharts / tooltip overrides
+   ────────────────────────── */
+[data-theme="light"] .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+}
+
+[data-theme="light"] .recharts-tooltip-label {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .recharts-cartesian-grid line {
+  stroke: #e2e8f0 !important;
+}
+
+[data-theme="light"] .recharts-xAxis .recharts-tick-value,
+[data-theme="light"] .recharts-yAxis .recharts-tick-value {
+  fill: #64748b !important;
+}
+
+/* ──────────────────────────
+   SVG gauge track (ContractAnalysis)
+   ────────────────────────── */
+[data-theme="light"] .stroke-slate-900 {
+  stroke: #e2e8f0 !important;
+}
+
+/* ──────────────────────────
+   Hover & interactive states
+   ────────────────────────── */
+[data-theme="light"] [class*="hover\\:bg-slate-8"]:hover,
+[data-theme="light"] [class*="hover\\:bg-slate-9"]:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Active sidebar / nav links keep their brand color */
+[data-theme="light"] [class*="bg-brand-500\\/"] {
+  /* preserve — don't override brand accent tints */
+}
+
+/* ──────────────────────────
+   Scrollbar – light variant
+   ────────────────────────── */
+[data-theme="light"] ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
 
-.light-mode ::-webkit-scrollbar-thumb {
+[data-theme="light"] ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
 }
 
-.light-mode ::-webkit-scrollbar-thumb:hover {
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
+/* ──────────────────────────
+   Selection & misc
+   ────────────────────────── */
+[data-theme="light"] ::selection {
+  background-color: #93c5fd;
+  color: #0f172a;
+}
+
+/* Shadow softening for light mode */
+[data-theme="light"] [class*="shadow-dark"],
+[data-theme="light"] [class*="shadow-2xl"],
+[data-theme="light"] [class*="shadow-xl"],
+[data-theme="light"] [class*="shadow-lg"] {
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.06) !important;
+}
+
+/* Radial glow backgrounds on login/register (keep them subtle in light) */
+[data-theme="light"] [class*="bg-\\[radial-gradient"] {
+  opacity: 0.15 !important;
+}
+
+/* Placeholder text color for custom non-Tailwind */
+[data-theme="light"] .placeholder-slate-500::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Code blocks in chatbot / markdown */
+[data-theme="light"] pre,
+[data-theme="light"] code {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+[data-theme="light"] pre code {
+  background-color: transparent !important;
+}

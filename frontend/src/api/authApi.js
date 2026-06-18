@@ -1,43 +1,5 @@
-import api from './axios';
-
 /**
- * Login user
- * @param {Object} credentials - { email, password }
+ * authApi.js — re-export from auth.js for backward compatibility.
+ * New code should import directly from './auth.js'.
  */
-export const login = async (credentials) => {
-  const response = await api.post('/auth/login', credentials);
-  return response.data;
-};
-
-/**
- * Register new user
- * @param {Object} userData - { name, email, password, etc. }
- */
-export const register = async (userData) => {
-  const response = await api.post('/auth/register', userData);
-  return response.data;
-};
-
-/**
- * Logout user
- */
-export const logout = async () => {
-  const response = await api.post('/auth/logout');
-  return response.data;
-};
-
-/**
- * Refresh JWT token
- */
-export const refreshToken = async () => {
-  const response = await api.post('/auth/refresh-token');
-  return response.data;
-};
-
-/**
- * Get current user profile
- */
-export const getCurrentUser = async () => {
-  const response = await api.get('/auth/me');
-  return response.data;
-};
+export { login, register, logout, getCurrentUser, updatePreferences } from './auth'

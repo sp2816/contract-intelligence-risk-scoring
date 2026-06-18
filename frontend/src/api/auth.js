@@ -1,22 +1,60 @@
-import axiosClient from './axiosClient.js'
+import axiosClient from './axiosClient'
 
-export async function login(credentials) {
-  const payload = await axiosClient.post('/auth/login', credentials)
-  return payload
-}
+/**
+ * Auth API service.
+ *
+ * Endpoints match the Flask backend at `/api/auth/*`:
+ *   POST /api/auth/signup   → register
+ *   POST /api/auth/login    → login
+ *   POST /api/auth/logout   → logout
+ *   GET  /api/auth/me       → getCurrentUser
+ *   PUT  /api/auth/preferences → updatePreferences
+ *
+ * Because axiosClient's response interceptor already unwraps `.data`,
+ * callers receive the payload object directly.
+ */
 
+/**
+ * Register a new user.
+ * @param {{ fullname: string, email: string, password: string }} payload
+ */
 export async function register(payload) {
-  const postData = {
-    fullname: payload.name || payload.fullname,
+  return axiosClient.post('/auth/signup', {
+    fullname: payload.fullname || payload.name,
     email: payload.email,
     password: payload.password,
-  }
-
-  const response = await axiosClient.post('/auth/signup', postData)
-  return response
+  })
 }
 
+/**
+ * Login with existing credentials.
+ * @param {{ email: string, password: string }} credentials
+ */
+export async function login(credentials) {
+  return axiosClient.post('/auth/login', {
+    email: credentials.email,
+    password: credentials.password,
+  })
+}
+
+/**
+ * Logout the current user (server-side token invalidation is optional).
+ */
+export async function logout() {
+  return axiosClient.post('/auth/logout')
+}
+
+/**
+ * Fetch the currently authenticated user profile.
+ */
+export async function getCurrentUser() {
+  return axiosClient.get('/auth/me')
+}
+
+/**
+ * Update preferences for the current user.
+ * @param {object} preferences
+ */
 export async function updatePreferences(preferences) {
-  const response = await axiosClient.put('/auth/preferences', preferences)
-  return response
+  return axiosClient.put('/auth/preferences', preferences)
 }

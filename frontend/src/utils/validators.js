@@ -115,3 +115,45 @@ export function validateRegisterForm({
 
   return { isValid: Object.keys(errors).length === 0, errors }
 }
+
+// ─── File upload validation ─────────────────────────────────────────────────
+
+const ALLOWED_CONTRACT_EXTENSIONS = ['pdf', 'docx', 'doc', 'txt']
+const MAX_CONTRACT_FILE_SIZE = 15 * 1024 * 1024 // 15 MB
+
+/**
+ * Validate a contract file before uploading.
+ * @param {File|null} file
+ * @returns {{ isValid: boolean, error: string }}
+ */
+export function validateContractFile(file) {
+  if (!file) {
+    return { isValid: false, error: 'No file selected.' }
+  }
+
+  // Extension check
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (!ext || !ALLOWED_CONTRACT_EXTENSIONS.includes(ext)) {
+    return {
+      isValid: false,
+      error: `Unsupported file type: .${ext || '(none)'}. Allowed: ${ALLOWED_CONTRACT_EXTENSIONS.join(', ')}.`,
+    }
+  }
+
+  // Size check
+  if (file.size > MAX_CONTRACT_FILE_SIZE) {
+    const maxMB = MAX_CONTRACT_FILE_SIZE / (1024 * 1024)
+    const fileMB = (file.size / (1024 * 1024)).toFixed(1)
+    return {
+      isValid: false,
+      error: `File exceeds the ${maxMB} MB limit (${fileMB} MB).`,
+    }
+  }
+
+  // Empty file check
+  if (file.size === 0) {
+    return { isValid: false, error: 'Uploaded file is empty.' }
+  }
+
+  return { isValid: true, error: '' }
+}

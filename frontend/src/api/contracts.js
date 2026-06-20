@@ -1,11 +1,12 @@
 import axiosClient from './axiosClient'
 
 /**
- * Contract upload API.
+ * Contract API service.
  *
  * Endpoints:
  *   POST /api/contracts/upload   → upload a contract file
  *   GET  /api/contracts/         → list user contracts
+ *   GET  /api/contracts/stats    → dashboard KPI aggregates
  */
 
 /**
@@ -41,3 +42,25 @@ export async function uploadContract(file, onProgress) {
 export async function listContracts() {
   return axiosClient.get('/contracts/')
 }
+
+/**
+ * Fetch pre-aggregated dashboard KPI stats.
+ *
+ * @returns {Promise<{
+ *   total_contracts:  number,
+ *   analyzed_count:   number,
+ *   avg_risk_score:   number | null,
+ *   high_risk_count:  number,
+ *   recent_activity:  Array<{
+ *     id: number,
+ *     original_filename: string,
+ *     upload_date: string | null,
+ *     status: string,
+ *     risk_score: number | null
+ *   }>
+ * }>}
+ */
+export async function fetchDashboardStats() {
+  return axiosClient.get('/contracts/stats')
+}
+

@@ -110,3 +110,94 @@ def list_contracts():
         'contracts': [c.to_dict() for c in contracts],
         'total': len(contracts),
     }), 200
+
+
+# ─── Dashboard Stats ─────────────────────────────────────────────────────────
+
+# Contracts with any of these statuses are counted as "analyzed"
+_ANALYZED_STATUSES = {'analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'}
+
+# risk_score >= this threshold → "High Risk"
+HIGH_RISK_THRESHOLD = 60.0
+
+
+@contracts_bp.route('/stats', methods=['GET'])
+@jwt_required()
+def contract_stats():
+    """
+    GET /api/contracts/stats
+    Returns aggregate KPI metrics for the authenticated user's contracts.
+
+    Response 200:
+    {
+        "total_contracts":  <int>,
+        "analyzed_count":   <int>,
+        "avg_risk_score":   <float | null>,
+        "high_risk_count":  <int>,
+        "recent_activity":  [
+            {
+                "id":                <int>,
+                "original_filename": <str>,
+                "upload_date":       <ISO-8601 str | null>,
+                "status":            <str>,
+                "risk_score":        <float | null>
+            },
+            ...  (max 5 items, newest first)
+        ]
+    }
+    """
+    from sqlalchemy import func
+
+    user_id = get_jwt_identity()
+
+    # ── Total contracts ───────────────────────────────────────────────────────
+    total = Contract.query.filter_by(user_id=user_id).count()
+
+    # ── Analyzed count ────────────────────────────────────────────────────────
+    analyzed_count = Contract.query.filter(
+        Contract.user_id == user_id,
+        Contract.status.in_(list(_ANALYZED_STATUSES))
+    ).count()
+
+    # ── Average risk score (only over contracts that have a score) ────────────
+    avg_risk_raw = (
+        db.session.query(func.avg(Contract.risk_score))
+        .filter(
+            Contract.user_id == user_id,
+            Contract.risk_score.isnot(None),
+        )
+        .scalar()
+    )
+    avg_risk = round(float(avg_risk_raw), 1) if avg_risk_raw is not None else None
+
+    # ── High-risk count ───────────────────────────────────────────────────────
+    high_risk_count = Contract.query.filter(
+        Contract.user_id == user_id,
+        Contract.risk_score >= HIGH_RISK_THRESHOLD,
+    ).count()
+
+    # ── Recent activity (last 5) ──────────────────────────────────────────────
+    recent = (
+        Contract.query
+        .filter_by(user_id=user_id)
+        .order_by(Contract.upload_date.desc())
+        .limit(5)
+        .all()
+    )
+
+    return jsonify({
+        'total_contracts': total,
+        'analyzed_count':  analyzed_count,
+        'avg_risk_score':  avg_risk,
+        'high_risk_count': high_risk_count,
+        'recent_activity': [
+            {
+                'id':                c.id,
+                'original_filename': c.original_filename or c.filename,
+                'upload_date':       c.upload_date.isoformat() if c.upload_date else None,
+                'status':            c.status,
+                'risk_score':        round(c.risk_score, 1) if c.risk_score is not None else None,
+            }
+            for c in recent
+        ],
+    }), 200

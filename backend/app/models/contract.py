@@ -16,6 +16,7 @@ class Contract(db.Model):
     file_path = db.Column(db.Text)
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(50), default='uploaded')
+    risk_score = db.Column(db.Float, nullable=True)   # 0.0 – 100.0; set by ML pipeline
     total_pages = db.Column(db.Integer)
     extracted_text = db.Column(db.Text)
     contract_summary = db.Column(db.Text)
@@ -32,6 +33,7 @@ class Contract(db.Model):
             'file_path': self.file_path,
             'upload_date': self.upload_date.isoformat() if self.upload_date else None,
             'status': self.status,
+            'risk_score': round(self.risk_score, 1) if self.risk_score is not None else None,
             'total_pages': self.total_pages,
             'contract_summary': self.contract_summary,
         }

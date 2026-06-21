@@ -14,6 +14,8 @@ class User(db.Model):
     oauth_provider = db.Column(db.String(50), nullable=True)  # 'google', 'github'
     is_active = db.Column(db.Boolean, default=True)
     preferences = db.Column(db.Text, nullable=True)
+    reset_token = db.Column(db.String(255), unique=True, nullable=True)
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Mail, Lock, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
 
 function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
+  const [email, setEmail] = useState(() => localStorage.getItem('remembered_email') || '')
+  const [password, setPassword] = useState(() => localStorage.getItem('remembered_password') || '')
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('remember_me') === 'true')
   const { login, loading, error } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -15,6 +15,15 @@ function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault()
     try {
+      if (rememberMe) {
+        localStorage.setItem('remembered_email', email)
+        localStorage.setItem('remembered_password', password)
+        localStorage.setItem('remember_me', 'true')
+      } else {
+        localStorage.removeItem('remembered_email')
+        localStorage.removeItem('remembered_password')
+        localStorage.setItem('remember_me', 'false')
+      }
       await login({ email, password, remember: rememberMe })
       navigate(from, { replace: true })
     } catch (err) {

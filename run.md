@@ -105,3 +105,18 @@ Then run the backend as before; the UI will be reachable at `http://localhost:50
 
 ---
 **You’re all set!** Open two CMD windows: one for the backend (`uvicorn …`) and one for the frontend (`npm run dev`). Enjoy the fully‑connected, secure UI.
+
+
+**Final Commands to run the Code** 
+Both servers are now successfully running in the background:
+
+Flask Backend:
+
+Command: backend\.venv\Scripts\python.exe backend/app/main.py
+URL: http://localhost:5000
+API Endpoints: /api/auth/* and /api/contracts/*
+Frontend React+Vite:
+
+Command: cmd.exe /c npm run dev
+URL: http://localhost:5173
+You can now open http://localhost:5173 in your browser to access the project and test the fixed authentication and password reset flows!

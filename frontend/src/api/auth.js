@@ -58,3 +58,19 @@ export async function getCurrentUser() {
 export async function updatePreferences(preferences) {
   return axiosClient.put('/auth/preferences', preferences)
 }
+
+/**
+ * Request a password reset link.
+ * @param {string} email
+ */
+export async function forgotPassword(email) {
+  return axiosClient.post('/auth/forgot-password', { email })
+}
+
+/**
+ * Reset password using a valid recovery token.
+ * @param {{ email: string, token: string, password: string }} payload
+ */
+export async function resetPassword(payload) {
+  return axiosClient.post('/auth/reset-password', payload)
+}

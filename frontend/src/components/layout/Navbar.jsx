@@ -88,17 +88,22 @@ function Navbar({ onToggleMobileMenu, isMobileMenuOpen, onToggleSidebar, isSideb
               </button>
 
               {/* User Profile */}
-              <div className={`flex items-center gap-2 ml-2 pl-4 border-l ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
+              <Link
+                to="/profile"
+                className={`flex items-center gap-2 ml-2 pl-4 border-l transition-opacity duration-200 hover:opacity-80 ${
+                  isLight ? 'border-slate-200' : 'border-slate-800'
+                }`}
+              >
                 <div className="flex flex-col items-end hidden sm:flex">
-                  <span className={`text-sm font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{user.name}</span>
+                  <span className={`text-sm font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{user.fullname || user.name}</span>
                   <span className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-500'}`}>Admin</span>
                 </div>
                 <div className={`h-9 w-9 rounded-full flex items-center justify-center border font-bold text-brand-400 ${
                   isLight ? 'bg-slate-100 border-slate-300' : 'bg-slate-800 border-slate-700'
                 }`}>
-                  {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="h-5 w-5" />}
+                  {(user.fullname || user.name) ? (user.fullname || user.name).charAt(0).toUpperCase() : <UserIcon className="h-5 w-5" />}
                 </div>
-              </div>
+              </Link>
             </>
           ) : (
             <Link

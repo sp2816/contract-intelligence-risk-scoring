@@ -161,6 +161,12 @@ def seed_database():
         ("Admin Legal Reviewer", "admin@lexai-intel.com", admin_pw, default_prefs)
     )
 
+    testdev_pw = generate_password_hash("SECURE1234!")
+    cursor.execute(
+        "INSERT INTO users (fullname, email, password_hash, preferences) VALUES (?, ?, ?, ?)",
+        ("Test Dev User", "testdev1@gmail.com", testdev_pw, default_prefs)
+    )
+
     # 2. Seed Contracts
     cursor.execute(
         "INSERT INTO contracts (user_id, filename, original_filename, status, total_pages, contract_summary) VALUES (?, ?, ?, ?, ?, ?)",

@@ -1,6 +1,6 @@
 function PasswordStrengthMeter({ password }) {
   const checks = [
-    { label: 'Min 10 characters', valid: password.length >= 10 },
+    { label: 'Min 8 characters', valid: password.length >= 8 },
     { label: 'Upper + lower case', valid: /[a-z]/.test(password) && /[A-Z]/.test(password) },
     { label: 'Number included', valid: /\d/.test(password) },
     { label: 'Symbol included', valid: /[^A-Za-z0-9]/.test(password) },

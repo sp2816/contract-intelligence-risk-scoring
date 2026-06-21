@@ -10,6 +10,7 @@ class AuthService:
     @staticmethod
     def signup(fullname, email, password):
         """Register a new user with email and password"""
+        email = email.strip().lower()
         # Check if user already exists
         if User.query.filter_by(email=email).first():
             return None, 'Email already registered'
@@ -41,6 +42,7 @@ class AuthService:
     @staticmethod
     def login(email, password):
         """Login user with email and password"""
+        email = email.strip().lower()
         user = User.query.filter_by(email=email).first()
         
         if not user or not user.check_password(password):

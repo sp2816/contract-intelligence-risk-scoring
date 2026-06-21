@@ -13,10 +13,14 @@ def create_app():
     app = Flask(__name__)
     
     # Configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DATABASE_URL',
-        'sqlite:///lexai.db'
-    )
+    db_uri = os.getenv('DATABASE_URL', 'sqlite:///lexai.db')
+    if db_uri.startswith('sqlite:///'):
+        db_file = db_uri[len('sqlite:///'):]
+        if not os.path.isabs(db_file):
+            backend_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+            db_path = os.path.abspath(os.path.join(backend_dir, 'app', 'instance', db_file))
+            db_uri = f"sqlite:///{db_path}"
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
     app.config['MAX_CONTENT_LENGTH'] = 15 * 1024 * 1024  # 15 MB upload limit

@@ -7,6 +7,7 @@ import Dashboard from '../pages/Dashboard.jsx'
 import Chatbot from '../pages/Chatbot.jsx'
 import ContractAnalysis from '../pages/ContractAnalysis.jsx'
 import Profile from '../pages/Profile.jsx'
+import Contracts from '../pages/Contracts.jsx'
 import NotFound from '../pages/NotFound.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
 
@@ -28,6 +29,7 @@ function AppRoutes() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/chatbot" element={<Chatbot />} />
           <Route path="/contract-analysis" element={<ContractAnalysis />} />
+          <Route path="/contracts" element={<Contracts />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
       </Route>

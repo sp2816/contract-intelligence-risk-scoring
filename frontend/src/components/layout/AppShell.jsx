@@ -4,10 +4,11 @@ import Navbar from './Navbar.jsx'
 import Sidebar from './Sidebar.jsx'
 import { useTheme } from '../../context/ThemeContext.jsx'
 import routePaths from '../../utils/routes.js'
-import { X, ShieldAlert, LayoutDashboard, MessageSquare, FileText, User } from 'lucide-react'
+import { X, ShieldAlert, LayoutDashboard, MessageSquare, FileText, User, Files } from 'lucide-react'
 
 const mobileNavItems = [
   { label: 'Dashboard', path: routePaths.dashboard, icon: LayoutDashboard },
+  { label: 'Contracts', path: routePaths.contracts, icon: Files },
   { label: 'Chatbot', path: routePaths.chatbot, icon: MessageSquare },
   { label: 'Contract Analysis', path: routePaths.contractAnalysis, icon: FileText },
   { label: 'Profile', path: routePaths.profile, icon: User },

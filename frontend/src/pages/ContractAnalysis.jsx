@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { 
   Upload, File, ShieldAlert, CheckCircle, AlertTriangle, 
   HelpCircle, ChevronRight, RefreshCw, Layers, ArrowRight,
   Filter, Info, Eye, Download, FileCheck, XCircle
 } from 'lucide-react'
-import { uploadContract } from '../api/contracts.js'
+import { uploadContract, getContractDetails, analyzeContract } from '../api/contracts.js'
 import { validateContractFile } from '../utils/validators.js'
 
 // Mock analysis steps (shown after upload completes, simulating backend AI processing)
@@ -96,7 +97,76 @@ const MOCK_ANALYSIS_REPORT = {
   ]
 }
 
+const buildReportData = (data) => {
+  const contract = data.contract
+  const dbClauses = data.clauses || []
+  const dbEntities = data.entities || []
+
+  const parties = dbEntities.filter(e => e.entity_type === 'COMPANY').map(e => e.entity_value).join(' & ') || 'Unknown Parties'
+  const dateVal = dbEntities.find(e => e.entity_type === 'DATE')?.entity_value || '—'
+  const lawVal = dbEntities.find(e => e.entity_type === 'JURISDICTION')?.entity_value || 'Unknown Jurisdiction'
+
+  const mappedClauses = dbClauses.map(c => ({
+    id: c.id.toString(),
+    name: c.clause_type,
+    category: c.clause_type.split(' ')[0] || 'Clause',
+    riskScore: c.risk_level === 'high' ? 80 : (c.risk_level === 'medium' ? 50 : 20),
+    riskLevel: c.risk_level,
+    riskColor: c.risk_level === 'high' ? 'rose' : (c.risk_level === 'medium' ? 'amber' : 'emerald'),
+    originalText: c.clause_text,
+    analysis: c.risk_level === 'high' 
+      ? 'High exposure clause detected. This term is highly unfavorable.' 
+      : (c.risk_level === 'medium' ? 'Moderate exposure clause. Review is recommended.' : 'Acceptable clause terms.'),
+    recommendation: c.risk_level === 'high' 
+      ? 'Redline this clause to Trailing 12-month fee cap or mutual liability constraints.' 
+      : (c.risk_level === 'medium' ? 'Redline to mutual notice periods.' : 'Acceptable as written.')
+  }))
+
+  const missing = []
+  if (contract.risk_score >= 60) {
+    missing.push({
+      name: 'Data Protection Addendum (DPA)',
+      importance: 'CRITICAL',
+      importanceColor: 'text-rose-400 bg-rose-950/40 border-rose-900/50',
+      reason: 'The agreement references handling European and California customer data, but lacks GDPR/CCPA standard contractual clauses (SCCs) or a DPA.',
+      template: '"Data Processing. To the extent Provider processes Personal Data on behalf of Client, the parties shall execute and comply with the terms of the Data Protection Addendum (DPA) attached as Exhibit B, which is incorporated herein by reference."'
+    })
+  } else {
+    // Add mild missing clause for NDA or smaller contracts
+    missing.push({
+      name: 'Force Majeure Pandemic Carve-out',
+      importance: 'HIGH',
+      importanceColor: 'text-amber-400 bg-amber-950/40 border-amber-900/50',
+      reason: 'The current Force Majeure clause lists "acts of God" but does not explicitly carve out government shut-downs, labor lockouts, or pandemics.',
+      template: '"Force Majeure. Neither party shall be liable for delays caused by events beyond reasonable control, explicitly including pandemics, epidemics, and government mandates."'
+    })
+  }
+
+  const recommendations = mappedClauses.filter(c => c.riskLevel === 'high' || c.riskLevel === 'medium').map(c => `Redline / negotiate ${c.name} terms.`)
+  if (missing.length > 0) {
+    recommendations.push(`Resolve missing ${missing[0].name} provisions before signing.`)
+  }
+
+  return {
+    fileName: contract.original_filename || contract.filename,
+    fileSize: '—',
+    agreementType: contract.original_filename?.toLowerCase().includes('nda') ? 'Non-Disclosure Agreement (NDA)' : 'Service Agreement / SaaS Contract',
+    parties: parties,
+    effectiveDate: dateVal,
+    governingLaw: lawVal,
+    riskScore: contract.risk_score || 0,
+    riskLabel: contract.risk_score >= 60 ? 'HIGH RISK' : (contract.risk_score >= 40 ? 'MEDIUM RISK' : 'LOW RISK'),
+    riskSummary: contract.contract_summary || 'Analysis complete.',
+    clauses: mappedClauses,
+    missingClauses: missing,
+    recommendations: recommendations.length > 0 ? recommendations : ['No immediate critical actions required.']
+  }
+}
+
 export default function ContractAnalysis() {
+  const [searchParams] = useSearchParams()
+  const queryId = searchParams.get('id')
+
   const [file, setFile] = useState(null)
   const [dragging, setDragging] = useState(false)
   const [status, setStatus] = useState('idle') // 'idle' | 'uploading' | 'analyzing' | 'completed' | 'error'
@@ -106,6 +176,46 @@ export default function ContractAnalysis() {
   const [clauseFilter, setClauseFilter] = useState('all')
   const [uploadError, setUploadError] = useState('')
   const [uploadedContract, setUploadedContract] = useState(null)
+  const [analysisReport, setAnalysisReport] = useState(MOCK_ANALYSIS_REPORT)
+
+  // Effect to load existing contract by ID from URL
+  useEffect(() => {
+    if (!queryId) return
+
+    const loadExistingContract = async () => {
+      setStatus('analyzing')
+      setAnalysisProgress(0)
+      setCurrentStepIndex(0)
+      try {
+        const details = await getContractDetails(queryId)
+        setUploadedContract(details.contract)
+        setFile({
+          name: details.contract.original_filename || details.contract.filename,
+          size: details.contract.total_pages ? `${details.contract.total_pages} pages` : '—'
+        })
+        
+        // If contract is not analyzed yet, run analysis
+        const statusLower = (details.contract.status || '').toLowerCase()
+        const isAnalyzed = ['analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'].includes(statusLower)
+        
+        if (!isAnalyzed) {
+          await analyzeContract(queryId)
+          const updatedDetails = await getContractDetails(queryId)
+          setUploadedContract(updatedDetails.contract)
+          setAnalysisReport(buildReportData(updatedDetails))
+        } else {
+          setAnalysisReport(buildReportData(details))
+        }
+        
+        setStatus('completed')
+      } catch (err) {
+        setUploadError(err?.message || 'Failed to load contract details.')
+        setStatus('error')
+      }
+    }
+
+    loadExistingContract()
+  }, [queryId])
 
   // Combined progress: upload is 0-50%, analysis simulation is 50-100%
   const totalProgress = status === 'uploading'
@@ -165,13 +275,17 @@ export default function ContractAnalysis() {
         setUploadProgress(percent)
       })
 
-      setUploadedContract(response.contract)
+      const contract = response.contract
+      setUploadedContract(contract)
       
       // Upload done → start simulated analysis phase
       setStatus('analyzing')
       setUploadProgress(100)
       setAnalysisProgress(0)
       setCurrentStepIndex(0)
+
+      // Start background analysis immediately on the server
+      analyzeContract(contract.id).catch(err => console.error("Background analysis failed:", err))
     } catch (err) {
       setUploadError(err?.message || 'Upload failed. Please try again.')
       setStatus('error')
@@ -188,7 +302,15 @@ export default function ContractAnalysis() {
     const executeNextStep = () => {
       if (currentStep >= ANALYSIS_STEPS.length) {
         setAnalysisProgress(100)
-        setTimeout(() => {
+        setTimeout(async () => {
+          if (uploadedContract) {
+            try {
+              const details = await getContractDetails(uploadedContract.id)
+              setAnalysisReport(buildReportData(details))
+            } catch (err) {
+              console.error("Failed to load real details, falling back to mock.", err)
+            }
+          }
           setStatus('completed')
         }, 500)
         return
@@ -221,7 +343,7 @@ export default function ContractAnalysis() {
     return () => {
       clearTimeout(stepTimer)
     }
-  }, [status])
+  }, [status, uploadedContract])
 
   const handleReset = () => {
     setFile(null)
@@ -234,7 +356,7 @@ export default function ContractAnalysis() {
   }
 
   // Filtered Key Clauses
-  const filteredClauses = MOCK_ANALYSIS_REPORT.clauses.filter(clause => {
+  const filteredClauses = (analysisReport?.clauses || []).filter(clause => {
     if (clauseFilter === 'all') return true
     return clause.riskLevel === clauseFilter
   })
@@ -243,7 +365,7 @@ export default function ContractAnalysis() {
   const radius = 55
   const strokeWidth = 10
   const circumference = 2 * Math.PI * radius
-  const strokeDashoffset = circumference - (Math.min(totalProgress === 100 ? MOCK_ANALYSIS_REPORT.riskScore : totalProgress, 100) / 100) * circumference
+  const strokeDashoffset = circumference - (Math.min(totalProgress === 100 ? (analysisReport?.riskScore || 0) : totalProgress, 100) / 100) * circumference
 
   const getRiskGaugeColor = (score) => {
     if (score >= 66) return 'stroke-rose-500'
@@ -474,7 +596,7 @@ export default function ContractAnalysis() {
                     cx="72"
                     cy="72"
                     r={radius}
-                    className={`${getRiskGaugeColor(MOCK_ANALYSIS_REPORT.riskScore)} fill-none transition-all duration-1000 ease-out`}
+                    className={`${getRiskGaugeColor(analysisReport.riskScore)} fill-none transition-all duration-1000 ease-out`}
                     strokeWidth={strokeWidth}
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeDashoffset}
@@ -482,16 +604,16 @@ export default function ContractAnalysis() {
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-3xl font-extrabold text-white tracking-tight">{MOCK_ANALYSIS_REPORT.riskScore}%</span>
-                  <span className={`text-[10px] font-bold mt-0.5 tracking-wider uppercase ${getRiskTextColor(MOCK_ANALYSIS_REPORT.riskScore)}`}>
-                    {MOCK_ANALYSIS_REPORT.riskLabel}
+                  <span className="text-3xl font-extrabold text-white tracking-tight">{analysisReport.riskScore}%</span>
+                  <span className={`text-[10px] font-bold mt-0.5 tracking-wider uppercase ${getRiskTextColor(analysisReport.riskScore)}`}>
+                    {analysisReport.riskLabel}
                   </span>
                 </div>
               </div>
 
               <div className="mt-6 space-y-1">
-                <h4 className="text-sm font-bold text-slate-200">{uploadedContract?.original_filename || MOCK_ANALYSIS_REPORT.fileName}</h4>
-                <p className="text-xs text-slate-500">{file?.size || MOCK_ANALYSIS_REPORT.fileSize} • Reviewed via LexAI</p>
+                <h4 className="text-sm font-bold text-slate-200">{uploadedContract?.original_filename || analysisReport.fileName}</h4>
+                <p className="text-xs text-slate-500">{file?.size || analysisReport.fileSize} • Reviewed via LexAI</p>
               </div>
 
               <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 border border-slate-800">
@@ -505,21 +627,21 @@ export default function ContractAnalysis() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Agreement Class</span>
-                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{MOCK_ANALYSIS_REPORT.agreementType}</span>
+                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.agreementType}</span>
                 </div>
                 <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Contracting Entities</span>
-                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{MOCK_ANALYSIS_REPORT.parties}</span>
+                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.parties}</span>
                 </div>
                 <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4 sm:col-span-2 lg:col-span-1">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Governing Laws & Date</span>
-                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{MOCK_ANALYSIS_REPORT.governingLaw} ({MOCK_ANALYSIS_REPORT.effectiveDate})</span>
+                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.governingLaw} ({analysisReport.effectiveDate})</span>
                 </div>
               </div>
 
               <div className="border-t border-slate-850 pt-4 space-y-2">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Executive Summary</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">{MOCK_ANALYSIS_REPORT.riskSummary}</p>
+                <p className="text-sm text-slate-300 leading-relaxed">{analysisReport.riskSummary}</p>
               </div>
             </div>
 
@@ -540,28 +662,28 @@ export default function ContractAnalysis() {
                   onClick={() => setClauseFilter('all')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'all' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
                 >
-                  All ({MOCK_ANALYSIS_REPORT.clauses.length})
+                  All ({(analysisReport?.clauses || []).length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setClauseFilter('high')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'high' ? 'bg-rose-950/45 text-rose-400 shadow' : 'text-slate-400 hover:text-slate-250'}`}
                 >
-                  High Risk ({MOCK_ANALYSIS_REPORT.clauses.filter(c => c.riskLevel === 'high').length})
+                  High Risk ({(analysisReport?.clauses || []).filter(c => c.riskLevel === 'high').length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setClauseFilter('medium')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'medium' ? 'bg-amber-950/45 text-amber-450 shadow' : 'text-slate-400 hover:text-slate-250'}`}
                 >
-                  Med Risk ({MOCK_ANALYSIS_REPORT.clauses.filter(c => c.riskLevel === 'medium').length})
+                  Med Risk ({(analysisReport?.clauses || []).filter(c => c.riskLevel === 'medium').length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setClauseFilter('low')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'low' ? 'bg-emerald-950/45 text-emerald-450 shadow' : 'text-slate-400 hover:text-slate-250'}`}
                 >
-                  Low Risk ({MOCK_ANALYSIS_REPORT.clauses.filter(c => c.riskLevel === 'low').length})
+                  Low Risk ({(analysisReport?.clauses || []).filter(c => c.riskLevel === 'low').length})
                 </button>
               </div>
             </div>
@@ -628,7 +750,7 @@ export default function ContractAnalysis() {
               </p>
 
               <div className="space-y-4 pt-2">
-                {MOCK_ANALYSIS_REPORT.missingClauses.map((item, idx) => (
+                {(analysisReport.missingClauses || []).map((item, idx) => (
                   <div key={idx} className="rounded-2xl border border-slate-850 bg-slate-900/20 p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white text-sm">{item.name}</span>
@@ -636,7 +758,7 @@ export default function ContractAnalysis() {
                         {item.importance}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-450 leading-relaxed">{item.reason}</p>
+                    <p className="text-xs text-slate-455 leading-relaxed">{item.reason}</p>
                     <div className="mt-2 bg-slate-950/80 rounded-xl p-2.5 border border-slate-850 text-[11px] font-mono text-sky-300">
                       <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider block mb-1">Standard Reference Template</span>
                       {item.template}
@@ -657,7 +779,7 @@ export default function ContractAnalysis() {
               </p>
 
               <div className="space-y-3 pt-2">
-                {MOCK_ANALYSIS_REPORT.recommendations.map((rec, idx) => (
+                {(analysisReport.recommendations || []).map((rec, idx) => (
                   <div key={idx} className="flex gap-3 items-start p-3 bg-slate-900/50 border border-slate-850 rounded-2xl hover:border-slate-700 transition">
                     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">
                       {idx + 1}

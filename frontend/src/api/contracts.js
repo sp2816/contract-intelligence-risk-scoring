@@ -64,3 +64,31 @@ export async function fetchDashboardStats() {
   return axiosClient.get('/contracts/stats')
 }
 
+/**
+ * Delete a contract by its ID.
+ * @param {number} id
+ * @returns {Promise<object>}
+ */
+export async function deleteContract(id) {
+  return axiosClient.delete(`/contracts/${id}`)
+}
+
+/**
+ * Trigger a simulated analysis on a contract.
+ * @param {number} id
+ * @returns {Promise<object>}
+ */
+export async function analyzeContract(id) {
+  return axiosClient.post(`/contracts/${id}/analyze`)
+}
+
+/**
+ * Fetch detailed contract information, including clauses, entities, and risk report.
+ * @param {number} id
+ * @returns {Promise<{ contract: object, clauses: object[], risk_report: object | null, entities: object[] }>}
+ */
+export async function getContractDetails(id) {
+  return axiosClient.get(`/contracts/${id}`)
+}
+
+

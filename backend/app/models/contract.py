@@ -37,3 +37,87 @@ class Contract(db.Model):
             'total_pages': self.total_pages,
             'contract_summary': self.contract_summary,
         }
+
+
+class Clause(db.Model):
+    """
+    Represents an extracted clause from a contract.
+    Matches the `clauses` table in schema.sql.
+    """
+    __tablename__ = 'clauses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    contract_id = db.Column(db.Integer, db.ForeignKey('contracts.id', ondelete='CASCADE'), nullable=False)
+    clause_type = db.Column(db.String(255), nullable=False)
+    clause_text = db.Column(db.Text, nullable=False)
+    confidence_score = db.Column(db.Float)
+    risk_level = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'contract_id': self.contract_id,
+            'clause_type': self.clause_type,
+            'clause_text': self.clause_text,
+            'confidence_score': self.confidence_score,
+            'risk_level': self.risk_level,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class RiskReport(db.Model):
+    """
+    Represents the risk assessment report generated for a contract.
+    Matches the `risk_reports` table in schema.sql.
+    """
+    __tablename__ = 'risk_reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    contract_id = db.Column(db.Integer, db.ForeignKey('contracts.id', ondelete='CASCADE'), nullable=False)
+    overall_risk_score = db.Column(db.Integer)
+    risk_summary = db.Column(db.Text)
+    high_risk_clauses = db.Column(db.Integer, default=0)
+    medium_risk_clauses = db.Column(db.Integer, default=0)
+    low_risk_clauses = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'contract_id': self.contract_id,
+            'overall_risk_score': self.overall_risk_score,
+            'risk_summary': self.risk_summary,
+            'high_risk_clauses': self.high_risk_clauses,
+            'medium_risk_clauses': self.medium_risk_clauses,
+            'low_risk_clauses': self.low_risk_clauses,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class Entity(db.Model):
+    """
+    Represents an extracted entity (e.g. contracting company) from a contract.
+    Matches the `entities` table in schema.sql.
+    """
+    __tablename__ = 'entities'
+
+    id = db.Column(db.Integer, primary_key=True)
+    contract_id = db.Column(db.Integer, db.ForeignKey('contracts.id', ondelete='CASCADE'), nullable=False)
+    entity_type = db.Column(db.String(100), nullable=False)
+    entity_value = db.Column(db.Text, nullable=False)
+    confidence_score = db.Column(db.Float)
+    page_number = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'contract_id': self.contract_id,
+            'entity_type': self.entity_type,
+            'entity_value': self.entity_value,
+            'confidence_score': self.confidence_score,
+            'page_number': self.page_number,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+

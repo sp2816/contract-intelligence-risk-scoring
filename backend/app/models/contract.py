@@ -31,7 +31,7 @@ class Contract(db.Model):
             'filename': self.filename,
             'original_filename': self.original_filename,
             'file_path': self.file_path,
-            'upload_date': self.upload_date.isoformat() if self.upload_date else None,
+            'upload_date': (self.upload_date.isoformat() + 'Z') if self.upload_date else None,
             'status': self.status,
             'risk_score': round(self.risk_score, 1) if self.risk_score is not None else None,
             'total_pages': self.total_pages,
@@ -62,7 +62,7 @@ class Clause(db.Model):
             'clause_text': self.clause_text,
             'confidence_score': self.confidence_score,
             'risk_level': self.risk_level,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': (self.created_at.isoformat() + 'Z') if self.created_at else None,
         }
 
 
@@ -91,7 +91,7 @@ class RiskReport(db.Model):
             'high_risk_clauses': self.high_risk_clauses,
             'medium_risk_clauses': self.medium_risk_clauses,
             'low_risk_clauses': self.low_risk_clauses,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': (self.created_at.isoformat() + 'Z') if self.created_at else None,
         }
 
 
@@ -118,6 +118,6 @@ class Entity(db.Model):
             'entity_value': self.entity_value,
             'confidence_score': self.confidence_score,
             'page_number': self.page_number,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': (self.created_at.isoformat() + 'Z') if self.created_at else None,
         }
 

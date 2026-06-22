@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight,
@@ -67,6 +67,7 @@ export default function Contracts() {
 
   // Search & Filtering
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [riskFilter, setRiskFilter] = useState('all')
 
@@ -108,6 +109,12 @@ export default function Contracts() {
   useEffect(() => {
     fetchList()
   }, [])
+
+  // Debounce search input by 200ms
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 200)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   // --- Actions ---
   const handleDelete = async () => {
@@ -174,9 +181,9 @@ export default function Contracts() {
   // --- Filtering and Sorting Logic ---
   const filteredContracts = useMemo(() => {
     return contracts.filter(c => {
-      // Search
+      // Search (uses debounced term)
       const name = (c.original_filename || c.filename || '').toLowerCase()
-      if (searchTerm && !name.includes(searchTerm.toLowerCase())) return false
+      if (debouncedSearchTerm && !name.includes(debouncedSearchTerm.toLowerCase())) return false
 
       // Status Filter
       const status = (c.status || '').toLowerCase()
@@ -198,7 +205,7 @@ export default function Contracts() {
 
       return true
     })
-  }, [contracts, searchTerm, statusFilter, riskFilter])
+  }, [contracts, debouncedSearchTerm, statusFilter, riskFilter])
 
   // Sorting
   const sortedContracts = useMemo(() => {

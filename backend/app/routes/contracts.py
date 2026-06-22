@@ -153,10 +153,10 @@ def contract_stats():
     # ── Total contracts ───────────────────────────────────────────────────────
     total = Contract.query.filter_by(user_id=user_id).count()
 
-    # ── Analyzed count ────────────────────────────────────────────────────────
+    # ── Analyzed count (case-insensitive for defense-in-depth) ────────────────
     analyzed_count = Contract.query.filter(
         Contract.user_id == user_id,
-        Contract.status.in_(list(_ANALYZED_STATUSES))
+        func.lower(Contract.status).in_(list(_ANALYZED_STATUSES))
     ).count()
 
     # ── Average risk score (only over contracts that have a score) ────────────
@@ -194,7 +194,7 @@ def contract_stats():
             {
                 'id':                c.id,
                 'original_filename': c.original_filename or c.filename,
-                'upload_date':       c.upload_date.isoformat() if c.upload_date else None,
+                'upload_date':       (c.upload_date.isoformat() + 'Z') if c.upload_date else None,
                 'status':            c.status,
                 'risk_score':        round(c.risk_score, 1) if c.risk_score is not None else None,
             }
@@ -322,8 +322,8 @@ def analyze_contract(contract_id):
             ('COMPANY', 'Client Partner', 0.85, 1)
         ]
 
-    # 2. Update contract metadata
-    contract.status = 'Analyzed'
+    # 2. Update contract metadata (status always lowercase for consistency)
+    contract.status = 'analyzed'
     contract.risk_score = overall_score
     contract.contract_summary = summary
     db.session.add(contract)

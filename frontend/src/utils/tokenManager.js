@@ -90,25 +90,6 @@ export function isTokenExpired() {
   return Date.now() >= payload.exp * 1000
 }
 
-// ---------------------------------------------------------------------------
-// Refresh token flow – expects a configured axios instance (e.g., axiosClient)
-// ---------------------------------------------------------------------------
-export async function refreshToken(axiosInstance) {
-  try {
-    const response = await axiosInstance.post('/auth/refresh-token')
-    const newToken = response?.token || response?.access_token || response?.data?.token
-    if (newToken) {
-      setToken(newToken)
-      return newToken
-    }
-    return null
-  } catch (err) {
-    console.warn('Token refresh failed', err)
-    clearSession()
-    return null
-  }
-}
-
 export default {
   getToken,
   setToken,
@@ -118,5 +99,4 @@ export default {
   removeStoredUser,
   clearSession,
   isTokenExpired,
-  refreshToken,
 }

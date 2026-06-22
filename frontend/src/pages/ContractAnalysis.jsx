@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { 
   Upload, File, ShieldAlert, CheckCircle, AlertTriangle, 
@@ -177,6 +177,7 @@ export default function ContractAnalysis() {
   const [uploadError, setUploadError] = useState('')
   const [uploadedContract, setUploadedContract] = useState(null)
   const [analysisReport, setAnalysisReport] = useState(MOCK_ANALYSIS_REPORT)
+  const analysisPromiseRef = useRef(null)
 
   // Effect to load existing contract by ID from URL
   useEffect(() => {
@@ -285,7 +286,11 @@ export default function ContractAnalysis() {
       setCurrentStepIndex(0)
 
       // Start background analysis immediately on the server
-      analyzeContract(contract.id).catch(err => console.error("Background analysis failed:", err))
+      // Store the promise so the simulation completion can await it
+      analysisPromiseRef.current = analyzeContract(contract.id).catch(err => {
+        console.error("Background analysis failed:", err)
+        return null // swallow so Promise.all / await won't throw
+      })
     } catch (err) {
       setUploadError(err?.message || 'Upload failed. Please try again.')
       setStatus('error')
@@ -305,6 +310,11 @@ export default function ContractAnalysis() {
         setTimeout(async () => {
           if (uploadedContract) {
             try {
+              // Wait for the real analysis API call to finish before fetching details
+              if (analysisPromiseRef.current) {
+                await analysisPromiseRef.current
+                analysisPromiseRef.current = null
+              }
               const details = await getContractDetails(uploadedContract.id)
               setAnalysisReport(buildReportData(details))
             } catch (err) {

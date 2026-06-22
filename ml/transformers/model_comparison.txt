@@ -1,0 +1,48 @@
+Model Comparison
+
+Model 1:
+DistilBERT
+
+Accuracy:
+88.56%
+
+Precision:
+88.29%
+
+Recall:
+88.56%
+
+F1:
+88.38%
+
+--------------------------------
+
+Model 2:
+Legal-BERT
+
+Accuracy:
+91.53%
+
+Precision:
+91.47%
+
+Recall:
+91.53%
+
+F1:
+91.49%
+
+--------------------------------
+
+Conclusion:
+
+Legal-BERT outperformed DistilBERT
+across all evaluation metrics.
+
+Selected Model:
+Legal-BERT
+
+Reason:
+Pretrained on legal documents and
+achieved higher accuracy, precision,
+recall, F1 score, and confidence.

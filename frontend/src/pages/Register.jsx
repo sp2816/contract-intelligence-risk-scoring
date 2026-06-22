@@ -21,7 +21,7 @@ function Register() {
   const navigate = useNavigate()
 
   const passwordValidations = useMemo(() => ({
-    minLength: password.length >= 10,
+    minLength: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /\d/.test(password),
@@ -34,9 +34,9 @@ function Register() {
     if (!fullName.trim()) nextErrors.fullName = 'Full name is required.'
     if (!email.trim()) nextErrors.email = 'Email address is required.'
     else if (!emailPattern.test(email)) nextErrors.email = 'Enter a valid email address.'
-    if (!organization.trim()) nextErrors.organization = 'Organization name is required.'
+    
     if (!password) nextErrors.password = 'Password is required.'
-    else if (password.length < 10) nextErrors.password = 'Password must be at least 10 characters.'
+    else if (password.length < 8) nextErrors.password = 'Password must be at least 8 characters.'
     if (!confirmPassword) nextErrors.confirmPassword = 'Please confirm your password.'
     else if (password !== confirmPassword) nextErrors.confirmPassword = 'Passwords do not match.'
     if (!acceptedTerms) nextErrors.terms = 'You must agree to the terms and conditions.'

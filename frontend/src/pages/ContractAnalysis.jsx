@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { 
   Upload, File, ShieldAlert, CheckCircle, AlertTriangle, 
   HelpCircle, ChevronRight, RefreshCw, Layers, ArrowRight,
-  Filter, Info, Eye, Download, FileCheck
+  Filter, Info, Eye, Download, FileCheck, XCircle
 } from 'lucide-react'
+import { uploadContract, getContractDetails, analyzeContract } from '../api/contracts.js'
+import { validateContractFile } from '../utils/validators.js'
 
-// Mock analysis steps
+// Mock analysis steps (shown after upload completes, simulating backend AI processing)
 const ANALYSIS_STEPS = [
-  { label: 'Securely uploading document to cloud sandbox', duration: 800 },
   { label: 'Extracting metadata, signing parties, and jurisdiction', duration: 1000 },
   { label: 'Running OCR scan and segmenting clauses', duration: 1200 },
   { label: 'Evaluating risk parameters and regulatory compliance', duration: 1500 },
   { label: 'Compiling recommendations and redline suggestions', duration: 1000 }
 ]
 
-// Mock analysis report data
+// Mock analysis report data (will be replaced when backend AI pipeline is ready)
 const MOCK_ANALYSIS_REPORT = {
   fileName: 'SaaS_Service_Agreement_Acme.pdf',
   fileSize: '1.2 MB',
@@ -95,13 +97,135 @@ const MOCK_ANALYSIS_REPORT = {
   ]
 }
 
+const buildReportData = (data) => {
+  const contract = data.contract
+  const dbClauses = data.clauses || []
+  const dbEntities = data.entities || []
+
+  const parties = dbEntities.filter(e => e.entity_type === 'COMPANY').map(e => e.entity_value).join(' & ') || 'Unknown Parties'
+  const dateVal = dbEntities.find(e => e.entity_type === 'DATE')?.entity_value || '—'
+  const lawVal = dbEntities.find(e => e.entity_type === 'JURISDICTION')?.entity_value || 'Unknown Jurisdiction'
+
+  const mappedClauses = dbClauses.map(c => ({
+    id: c.id.toString(),
+    name: c.clause_type,
+    category: c.clause_type.split(' ')[0] || 'Clause',
+    riskScore: c.risk_level === 'high' ? 80 : (c.risk_level === 'medium' ? 50 : 20),
+    riskLevel: c.risk_level,
+    riskColor: c.risk_level === 'high' ? 'rose' : (c.risk_level === 'medium' ? 'amber' : 'emerald'),
+    originalText: c.clause_text,
+    analysis: c.risk_level === 'high' 
+      ? 'High exposure clause detected. This term is highly unfavorable.' 
+      : (c.risk_level === 'medium' ? 'Moderate exposure clause. Review is recommended.' : 'Acceptable clause terms.'),
+    recommendation: c.risk_level === 'high' 
+      ? 'Redline this clause to Trailing 12-month fee cap or mutual liability constraints.' 
+      : (c.risk_level === 'medium' ? 'Redline to mutual notice periods.' : 'Acceptable as written.')
+  }))
+
+  const missing = []
+  if (contract.risk_score >= 60) {
+    missing.push({
+      name: 'Data Protection Addendum (DPA)',
+      importance: 'CRITICAL',
+      importanceColor: 'text-rose-400 bg-rose-950/40 border-rose-900/50',
+      reason: 'The agreement references handling European and California customer data, but lacks GDPR/CCPA standard contractual clauses (SCCs) or a DPA.',
+      template: '"Data Processing. To the extent Provider processes Personal Data on behalf of Client, the parties shall execute and comply with the terms of the Data Protection Addendum (DPA) attached as Exhibit B, which is incorporated herein by reference."'
+    })
+  } else {
+    // Add mild missing clause for NDA or smaller contracts
+    missing.push({
+      name: 'Force Majeure Pandemic Carve-out',
+      importance: 'HIGH',
+      importanceColor: 'text-amber-400 bg-amber-950/40 border-amber-900/50',
+      reason: 'The current Force Majeure clause lists "acts of God" but does not explicitly carve out government shut-downs, labor lockouts, or pandemics.',
+      template: '"Force Majeure. Neither party shall be liable for delays caused by events beyond reasonable control, explicitly including pandemics, epidemics, and government mandates."'
+    })
+  }
+
+  const recommendations = mappedClauses.filter(c => c.riskLevel === 'high' || c.riskLevel === 'medium').map(c => `Redline / negotiate ${c.name} terms.`)
+  if (missing.length > 0) {
+    recommendations.push(`Resolve missing ${missing[0].name} provisions before signing.`)
+  }
+
+  return {
+    fileName: contract.original_filename || contract.filename,
+    fileSize: '—',
+    agreementType: contract.original_filename?.toLowerCase().includes('nda') ? 'Non-Disclosure Agreement (NDA)' : 'Service Agreement / SaaS Contract',
+    parties: parties,
+    effectiveDate: dateVal,
+    governingLaw: lawVal,
+    riskScore: contract.risk_score || 0,
+    riskLabel: contract.risk_score >= 60 ? 'HIGH RISK' : (contract.risk_score >= 40 ? 'MEDIUM RISK' : 'LOW RISK'),
+    riskSummary: contract.contract_summary || 'Analysis complete.',
+    clauses: mappedClauses,
+    missingClauses: missing,
+    recommendations: recommendations.length > 0 ? recommendations : ['No immediate critical actions required.']
+  }
+}
+
 export default function ContractAnalysis() {
+  const [searchParams] = useSearchParams()
+  const queryId = searchParams.get('id')
+
   const [file, setFile] = useState(null)
   const [dragging, setDragging] = useState(false)
-  const [status, setStatus] = useState('idle') // 'idle' | 'uploading' | 'analyzing' | 'completed'
-  const [progress, setProgress] = useState(0)
+  const [status, setStatus] = useState('idle') // 'idle' | 'uploading' | 'analyzing' | 'completed' | 'error'
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [clauseFilter, setClauseFilter] = useState('all')
+  const [uploadError, setUploadError] = useState('')
+  const [uploadedContract, setUploadedContract] = useState(null)
+  const [analysisReport, setAnalysisReport] = useState(MOCK_ANALYSIS_REPORT)
+  const analysisPromiseRef = useRef(null)
+
+  // Effect to load existing contract by ID from URL
+  useEffect(() => {
+    if (!queryId) return
+
+    const loadExistingContract = async () => {
+      setStatus('analyzing')
+      setAnalysisProgress(0)
+      setCurrentStepIndex(0)
+      try {
+        const details = await getContractDetails(queryId)
+        setUploadedContract(details.contract)
+        setFile({
+          name: details.contract.original_filename || details.contract.filename,
+          size: details.contract.total_pages ? `${details.contract.total_pages} pages` : '—'
+        })
+        
+        // If contract is not analyzed yet, run analysis
+        const statusLower = (details.contract.status || '').toLowerCase()
+        const isAnalyzed = ['analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'].includes(statusLower)
+        
+        if (!isAnalyzed) {
+          await analyzeContract(queryId)
+          const updatedDetails = await getContractDetails(queryId)
+          setUploadedContract(updatedDetails.contract)
+          setAnalysisReport(buildReportData(updatedDetails))
+        } else {
+          setAnalysisReport(buildReportData(details))
+        }
+        
+        setStatus('completed')
+      } catch (err) {
+        setUploadError(err?.message || 'Failed to load contract details.')
+        setStatus('error')
+      }
+    }
+
+    loadExistingContract()
+  }, [queryId])
+
+  // Combined progress: upload is 0-50%, analysis simulation is 50-100%
+  const totalProgress = status === 'uploading'
+    ? Math.round(uploadProgress * 0.5)
+    : status === 'analyzing'
+    ? 50 + Math.round(analysisProgress * 0.5)
+    : status === 'completed'
+    ? 100
+    : 0
 
   // Handle file select/drag events
   const handleDragOver = (e) => {
@@ -129,45 +253,81 @@ export default function ContractAnalysis() {
     }
   }
 
-  const processFile = (selectedFile) => {
-    // Validate file type (PDF/Word/Text)
-    const ext = selectedFile.name.split('.').pop().toLowerCase()
-    if (!['pdf', 'docx', 'txt', 'doc'].includes(ext)) {
-      alert('Unsupported file format. Please upload a PDF, DOCX, or TXT file.')
+  const processFile = async (selectedFile) => {
+    // ─── Client-side validation ───────────────────────────────────────────
+    const validation = validateContractFile(selectedFile)
+    if (!validation.isValid) {
+      setUploadError(validation.error)
+      setStatus('error')
       return
     }
+
     setFile({
       name: selectedFile.name,
       size: (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB'
     })
-    startAnalysis()
-  }
-
-  // Simulate step-by-step progress analysis
-  const startAnalysis = () => {
+    setUploadError('')
     setStatus('uploading')
-    setProgress(0)
-    setCurrentStepIndex(0)
+    setUploadProgress(0)
+
+    // ─── Real upload to backend ───────────────────────────────────────────
+    try {
+      const response = await uploadContract(selectedFile, (percent) => {
+        setUploadProgress(percent)
+      })
+
+      const contract = response.contract
+      setUploadedContract(contract)
+      
+      // Upload done → start simulated analysis phase
+      setStatus('analyzing')
+      setUploadProgress(100)
+      setAnalysisProgress(0)
+      setCurrentStepIndex(0)
+
+      // Start background analysis immediately on the server
+      // Store the promise so the simulation completion can await it
+      analysisPromiseRef.current = analyzeContract(contract.id).catch(err => {
+        console.error("Background analysis failed:", err)
+        return null // swallow so Promise.all / await won't throw
+      })
+    } catch (err) {
+      setUploadError(err?.message || 'Upload failed. Please try again.')
+      setStatus('error')
+    }
   }
 
+  // Simulate analysis steps after upload completes
   useEffect(() => {
-    if (status !== 'uploading') return
+    if (status !== 'analyzing') return
 
     let currentStep = 0
     let stepTimer = null
 
     const executeNextStep = () => {
       if (currentStep >= ANALYSIS_STEPS.length) {
-        setProgress(100)
-        setTimeout(() => {
+        setAnalysisProgress(100)
+        setTimeout(async () => {
+          if (uploadedContract) {
+            try {
+              // Wait for the real analysis API call to finish before fetching details
+              if (analysisPromiseRef.current) {
+                await analysisPromiseRef.current
+                analysisPromiseRef.current = null
+              }
+              const details = await getContractDetails(uploadedContract.id)
+              setAnalysisReport(buildReportData(details))
+            } catch (err) {
+              console.error("Failed to load real details, falling back to mock.", err)
+            }
+          }
           setStatus('completed')
         }, 500)
         return
       }
 
       setCurrentStepIndex(currentStep)
-      
-      // Interpolate progress percentage
+
       const startProg = Math.round((currentStep / ANALYSIS_STEPS.length) * 100)
       const endProg = Math.round(((currentStep + 1) / ANALYSIS_STEPS.length) * 100)
       let currentProg = startProg
@@ -175,7 +335,7 @@ export default function ContractAnalysis() {
       const progressInterval = setInterval(() => {
         if (currentProg < endProg) {
           currentProg += 1
-          setProgress(Math.min(currentProg, 99))
+          setAnalysisProgress(Math.min(currentProg, 99))
         } else {
           clearInterval(progressInterval)
         }
@@ -193,17 +353,20 @@ export default function ContractAnalysis() {
     return () => {
       clearTimeout(stepTimer)
     }
-  }, [status])
+  }, [status, uploadedContract])
 
   const handleReset = () => {
     setFile(null)
     setStatus('idle')
-    setProgress(0)
+    setUploadProgress(0)
+    setAnalysisProgress(0)
     setCurrentStepIndex(0)
+    setUploadError('')
+    setUploadedContract(null)
   }
 
   // Filtered Key Clauses
-  const filteredClauses = MOCK_ANALYSIS_REPORT.clauses.filter(clause => {
+  const filteredClauses = (analysisReport?.clauses || []).filter(clause => {
     if (clauseFilter === 'all') return true
     return clause.riskLevel === clauseFilter
   })
@@ -212,10 +375,8 @@ export default function ContractAnalysis() {
   const radius = 55
   const strokeWidth = 10
   const circumference = 2 * Math.PI * radius
-  // Animate the risk score value fill
-  const strokeDashoffset = circumference - (Math.min(progress === 100 ? MOCK_ANALYSIS_REPORT.riskScore : progress, 100) / 100) * circumference
+  const strokeDashoffset = circumference - (Math.min(totalProgress === 100 ? (analysisReport?.riskScore || 0) : totalProgress, 100) / 100) * circumference
 
-  // Circular gauge color class
   const getRiskGaugeColor = (score) => {
     if (score >= 66) return 'stroke-rose-500'
     if (score >= 36) return 'stroke-amber-500'
@@ -248,7 +409,7 @@ export default function ContractAnalysis() {
           <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Legal Risk Guard</p>
           <h1 className="text-3xl font-semibold text-white sm:text-4xl">AI Contract Analysis</h1>
         </div>
-        {status === 'completed' && (
+        {(status === 'completed' || status === 'error') && (
           <button
             type="button"
             onClick={handleReset}
@@ -259,6 +420,30 @@ export default function ContractAnalysis() {
           </button>
         )}
       </div>
+
+      {/* ERROR state */}
+      {status === 'error' && (
+        <div className="rounded-[2rem] border border-rose-800/50 bg-rose-950/20 p-6 md:p-10 shadow-xl backdrop-blur-md max-w-3xl mx-auto w-full space-y-6 animate-slide-up">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0">
+              <XCircle className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-lg">Upload Failed</h3>
+              <p className="text-sm text-rose-300 mt-2 leading-relaxed">{uploadError}</p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="rounded-2xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-brand-700 transition"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* IDLE state: Drag and drop Zone */}
       {status === 'idle' && (
@@ -293,24 +478,11 @@ export default function ContractAnalysis() {
             </label>
             <span className="text-xs text-slate-550">Supported: PDF, DOCX, TXT (Max 15MB)</span>
           </div>
-
-          {/* Quick Mock Sample Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setFile({ name: 'SaaS_Service_Agreement_Acme.pdf', size: '1.2 MB' })
-              startAnalysis()
-            }}
-            className="mt-10 flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition hover:border-slate-700"
-          >
-            <File className="h-3.5 w-3.5 text-brand-400" />
-            Analyze a mock SaaS agreement template
-          </button>
         </div>
       )}
 
       {/* UPLOADING & ANALYZING state: Progress Tracker */}
-      {status === 'uploading' && (
+      {(status === 'uploading' || status === 'analyzing') && (
         <div className="rounded-[2.5rem] border border-slate-800 bg-slate-900/40 p-6 md:p-10 shadow-xl backdrop-blur-md max-w-3xl mx-auto w-full space-y-8 animate-slide-up">
           <div className="flex items-center justify-between border-b border-slate-850 pb-6">
             <div className="flex items-center gap-4">
@@ -319,64 +491,100 @@ export default function ContractAnalysis() {
               </div>
               <div>
                 <h3 className="font-bold text-white text-lg truncate max-w-md">{file?.name}</h3>
-                <p className="text-xs text-slate-500 mt-1">Contract analysis process is executing...</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {status === 'uploading' ? 'Uploading contract to secure cloud...' : 'AI analysis in progress...'}
+                </p>
               </div>
             </div>
-            <span className="text-3xl font-black text-brand-400 tracking-tight">{progress}%</span>
+            <span className="text-3xl font-black text-brand-400 tracking-tight">{totalProgress}%</span>
           </div>
 
           {/* Progress Bar */}
           <div className="h-2 w-full rounded-full bg-slate-950 overflow-hidden p-0.5 border border-slate-850">
             <div 
               className="h-full rounded-full bg-gradient-to-r from-brand-500 via-indigo-500 to-sky-400 transition-all duration-300 shadow-glow" 
-              style={{ width: `${progress}%` }}
+              style={{ width: `${totalProgress}%` }}
             />
           </div>
 
-          {/* Steps list */}
-          <div className="space-y-4 pt-4">
-            {ANALYSIS_STEPS.map((step, index) => {
-              const isDone = index < currentStepIndex
-              const isActive = index === currentStepIndex
-              
-              return (
-                <div 
-                  key={index}
-                  className={`flex items-center gap-4 rounded-2xl border px-4 py-3.5 transition duration-300 ${
-                    isActive 
-                      ? 'border-brand-500/40 bg-brand-500/5 shadow-dark-soft' 
-                      : isDone 
-                        ? 'border-slate-800/80 bg-slate-950/20 opacity-80' 
-                        : 'border-slate-900/60 bg-transparent opacity-40'
-                  }`}
-                >
-                  <div className="shrink-0">
-                    {isDone ? (
-                      <CheckCircle className="h-5 w-5 text-emerald-400 fill-emerald-950/40" />
-                    ) : isActive ? (
-                      <div className="h-5 w-5 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full border border-slate-700 bg-slate-900" />
+          {/* Upload progress phase */}
+          {status === 'uploading' && (
+            <div className="flex items-center gap-4 rounded-2xl border border-brand-500/40 bg-brand-500/5 px-4 py-3.5 shadow-dark-soft">
+              <div className="h-5 w-5 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+              <span className="text-sm font-medium text-white">Securely uploading document ({uploadProgress}%)</span>
+              <span className="ml-auto text-xs text-brand-400 font-semibold uppercase tracking-wider animate-pulse-soft">
+                Uploading
+              </span>
+            </div>
+          )}
+
+          {/* Analysis steps */}
+          {status === 'analyzing' && (
+            <div className="space-y-4 pt-4">
+              {/* Upload complete checkmark */}
+              <div className="flex items-center gap-4 rounded-2xl border border-slate-800/80 bg-slate-950/20 px-4 py-3.5 opacity-80">
+                <CheckCircle className="h-5 w-5 text-emerald-400 fill-emerald-950/40" />
+                <span className="text-sm font-medium text-slate-400">Contract uploaded successfully (ID: {uploadedContract?.id})</span>
+              </div>
+
+              {ANALYSIS_STEPS.map((step, index) => {
+                const isDone = index < currentStepIndex
+                const isActive = index === currentStepIndex
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`flex items-center gap-4 rounded-2xl border px-4 py-3.5 transition duration-300 ${
+                      isActive 
+                        ? 'border-brand-500/40 bg-brand-500/5 shadow-dark-soft' 
+                        : isDone 
+                          ? 'border-slate-800/80 bg-slate-950/20 opacity-80' 
+                          : 'border-slate-900/60 bg-transparent opacity-40'
+                    }`}
+                  >
+                    <div className="shrink-0">
+                      {isDone ? (
+                        <CheckCircle className="h-5 w-5 text-emerald-400 fill-emerald-950/40" />
+                      ) : isActive ? (
+                        <div className="h-5 w-5 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border border-slate-700 bg-slate-900" />
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-400'}`}>
+                      {step.label}
+                    </span>
+                    {isActive && (
+                      <span className="ml-auto text-xs text-brand-400 font-semibold uppercase tracking-wider animate-pulse-soft">
+                        Processing
+                      </span>
                     )}
                   </div>
-                  <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-400'}`}>
-                    {step.label}
-                  </span>
-                  {isActive && (
-                    <span className="ml-auto text-xs text-brand-400 font-semibold uppercase tracking-wider animate-pulse-soft">
-                      Processing
-                    </span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {/* COMPLETED state: Detailed Risk Assessment Dashboard */}
       {status === 'completed' && (
         <div className="space-y-6 animate-fade-in">
+
+          {/* Upload success banner */}
+          {uploadedContract && (
+            <div className="flex items-center gap-4 rounded-2xl border border-emerald-800/40 bg-emerald-950/20 px-5 py-4">
+              <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-emerald-300">
+                  Contract uploaded & analyzed successfully
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Contract ID: {uploadedContract.id} • {uploadedContract.original_filename} • Status: {uploadedContract.status}
+                </p>
+              </div>
+            </div>
+          )}
           
           {/* Executive Row: Risk Wheel, Metadata & Summary */}
           <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
@@ -386,9 +594,7 @@ export default function ContractAnalysis() {
               <span className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">AI Risk Gauge</span>
               
               <div className="relative flex items-center justify-center">
-                {/* SVG Circle Gauge */}
                 <svg className="h-36 w-36 transform -rotate-90">
-                  {/* Track */}
                   <circle
                     cx="72"
                     cy="72"
@@ -396,30 +602,28 @@ export default function ContractAnalysis() {
                     className="stroke-slate-900 fill-none"
                     strokeWidth={strokeWidth}
                   />
-                  {/* Fill */}
                   <circle
                     cx="72"
                     cy="72"
                     r={radius}
-                    className={`${getRiskGaugeColor(MOCK_ANALYSIS_REPORT.riskScore)} fill-none transition-all duration-1000 ease-out`}
+                    className={`${getRiskGaugeColor(analysisReport.riskScore)} fill-none transition-all duration-1000 ease-out`}
                     strokeWidth={strokeWidth}
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeDashoffset}
                     strokeLinecap="round"
                   />
                 </svg>
-                {/* Text overlay */}
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-3xl font-extrabold text-white tracking-tight">{MOCK_ANALYSIS_REPORT.riskScore}%</span>
-                  <span className={`text-[10px] font-bold mt-0.5 tracking-wider uppercase ${getRiskTextColor(MOCK_ANALYSIS_REPORT.riskScore)}`}>
-                    {MOCK_ANALYSIS_REPORT.riskLabel}
+                  <span className="text-3xl font-extrabold text-white tracking-tight">{analysisReport.riskScore}%</span>
+                  <span className={`text-[10px] font-bold mt-0.5 tracking-wider uppercase ${getRiskTextColor(analysisReport.riskScore)}`}>
+                    {analysisReport.riskLabel}
                   </span>
                 </div>
               </div>
 
               <div className="mt-6 space-y-1">
-                <h4 className="text-sm font-bold text-slate-200">{MOCK_ANALYSIS_REPORT.fileName}</h4>
-                <p className="text-xs text-slate-500">{MOCK_ANALYSIS_REPORT.fileSize} • Reviewed via LexAI</p>
+                <h4 className="text-sm font-bold text-slate-200">{uploadedContract?.original_filename || analysisReport.fileName}</h4>
+                <p className="text-xs text-slate-500">{file?.size || analysisReport.fileSize} • Reviewed via LexAI</p>
               </div>
 
               <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 border border-slate-800">
@@ -433,21 +637,21 @@ export default function ContractAnalysis() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Agreement Class</span>
-                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{MOCK_ANALYSIS_REPORT.agreementType}</span>
+                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.agreementType}</span>
                 </div>
                 <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Contracting Entities</span>
-                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{MOCK_ANALYSIS_REPORT.parties}</span>
+                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.parties}</span>
                 </div>
                 <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4 sm:col-span-2 lg:col-span-1">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Governing Laws & Date</span>
-                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{MOCK_ANALYSIS_REPORT.governingLaw} ({MOCK_ANALYSIS_REPORT.effectiveDate})</span>
+                  <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.governingLaw} ({analysisReport.effectiveDate})</span>
                 </div>
               </div>
 
               <div className="border-t border-slate-850 pt-4 space-y-2">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Executive Summary</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">{MOCK_ANALYSIS_REPORT.riskSummary}</p>
+                <p className="text-sm text-slate-300 leading-relaxed">{analysisReport.riskSummary}</p>
               </div>
             </div>
 
@@ -468,28 +672,28 @@ export default function ContractAnalysis() {
                   onClick={() => setClauseFilter('all')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'all' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
                 >
-                  All ({MOCK_ANALYSIS_REPORT.clauses.length})
+                  All ({(analysisReport?.clauses || []).length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setClauseFilter('high')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'high' ? 'bg-rose-950/45 text-rose-400 shadow' : 'text-slate-400 hover:text-slate-250'}`}
                 >
-                  High Risk ({MOCK_ANALYSIS_REPORT.clauses.filter(c => c.riskLevel === 'high').length})
+                  High Risk ({(analysisReport?.clauses || []).filter(c => c.riskLevel === 'high').length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setClauseFilter('medium')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'medium' ? 'bg-amber-950/45 text-amber-450 shadow' : 'text-slate-400 hover:text-slate-250'}`}
                 >
-                  Med Risk ({MOCK_ANALYSIS_REPORT.clauses.filter(c => c.riskLevel === 'medium').length})
+                  Med Risk ({(analysisReport?.clauses || []).filter(c => c.riskLevel === 'medium').length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setClauseFilter('low')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${clauseFilter === 'low' ? 'bg-emerald-950/45 text-emerald-450 shadow' : 'text-slate-400 hover:text-slate-250'}`}
                 >
-                  Low Risk ({MOCK_ANALYSIS_REPORT.clauses.filter(c => c.riskLevel === 'low').length})
+                  Low Risk ({(analysisReport?.clauses || []).filter(c => c.riskLevel === 'low').length})
                 </button>
               </div>
             </div>
@@ -502,7 +706,6 @@ export default function ContractAnalysis() {
                   className="rounded-3xl border border-slate-800 bg-slate-900/20 p-5 shadow-lg backdrop-blur hover:border-slate-700/80 transition flex flex-col justify-between space-y-4"
                 >
                   <div>
-                    {/* Card Header */}
                     <div className="flex items-start justify-between border-b border-slate-850 pb-3">
                       <div>
                         <h4 className="font-bold text-white text-base leading-tight">{clause.name}</h4>
@@ -513,7 +716,6 @@ export default function ContractAnalysis() {
                       </span>
                     </div>
 
-                    {/* Card Content */}
                     <div className="space-y-3 mt-4">
                       <div>
                         <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Original Clause Text</span>
@@ -529,7 +731,6 @@ export default function ContractAnalysis() {
                     </div>
                   </div>
 
-                  {/* Card Recommendation */}
                   <div className="mt-4 pt-3 border-t border-slate-850 bg-brand-500/5 border-l-2 border-l-brand-500/60 rounded-r-xl p-3">
                     <span className="text-[10px] font-extrabold text-brand-400 uppercase tracking-wider block">Redline Recommendation</span>
                     <p className="mt-1.5 text-xs text-slate-300 leading-relaxed font-medium">{clause.recommendation}</p>
@@ -559,7 +760,7 @@ export default function ContractAnalysis() {
               </p>
 
               <div className="space-y-4 pt-2">
-                {MOCK_ANALYSIS_REPORT.missingClauses.map((item, idx) => (
+                {(analysisReport.missingClauses || []).map((item, idx) => (
                   <div key={idx} className="rounded-2xl border border-slate-850 bg-slate-900/20 p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white text-sm">{item.name}</span>
@@ -567,7 +768,7 @@ export default function ContractAnalysis() {
                         {item.importance}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-450 leading-relaxed">{item.reason}</p>
+                    <p className="text-xs text-slate-455 leading-relaxed">{item.reason}</p>
                     <div className="mt-2 bg-slate-950/80 rounded-xl p-2.5 border border-slate-850 text-[11px] font-mono text-sky-300">
                       <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider block mb-1">Standard Reference Template</span>
                       {item.template}
@@ -588,7 +789,7 @@ export default function ContractAnalysis() {
               </p>
 
               <div className="space-y-3 pt-2">
-                {MOCK_ANALYSIS_REPORT.recommendations.map((rec, idx) => (
+                {(analysisReport.recommendations || []).map((rec, idx) => (
                   <div key={idx} className="flex gap-3 items-start p-3 bg-slate-900/50 border border-slate-850 rounded-2xl hover:border-slate-700 transition">
                     <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold font-mono">
                       {idx + 1}

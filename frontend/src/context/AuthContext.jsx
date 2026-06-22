@@ -1,88 +1,181 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { login as loginRequest, register as registerRequest, updatePreferences as updatePreferencesRequest } from '../api/auth.js'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import {
+  login as apiLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  getCurrentUser,
+} from '../api/auth'
+import {
+  getToken,
+  setToken,
+  clearSession,
+  getStoredUser,
+  setStoredUser,
+  isTokenExpired,
+} from '../utils/tokenManager'
 
 const AuthContext = createContext(null)
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Provider
+// ──────────────────────────────────────────────────────────────────────────────
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const stored = window.localStorage.getItem('ai-contract-user')
-    return stored ? JSON.parse(stored) : null
-  })
-  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState(() => getStoredUser())
+  const [token, setTokenState] = useState(() => getToken())
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // ---------- Persist token + sync React state ─────────────────────────────
+  const persistToken = useCallback((newToken) => {
+    setToken(newToken) // localStorage
+    setTokenState(newToken) // React state
+  }, [])
+
+  const persistUser = useCallback((newUser) => {
+    setStoredUser(newUser)
+    setUser(newUser)
+  }, [])
+
+  // ---------- Boot: revalidate session on mount ────────────────────────────
   useEffect(() => {
-    if (user) {
-      window.localStorage.setItem('ai-contract-user', JSON.stringify(user))
-    } else {
-      window.localStorage.removeItem('ai-contract-user')
-    }
-  }, [user])
+    let cancelled = false
 
-  const login = async (credentials) => {
+    async function initAuth() {
+      const storedToken = getToken()
+      if (!storedToken || isTokenExpired()) {
+        clearSession()
+        setUser(null)
+        setTokenState(null)
+        setLoading(false)
+        return
+      }
+
+      try {
+        const data = await getCurrentUser()
+        if (!cancelled) {
+          const userData = data.user || data
+          persistUser(userData)
+        }
+      } catch {
+        // Token invalid / server unreachable — clear everything
+        if (!cancelled) {
+          clearSession()
+          setUser(null)
+          setTokenState(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    initAuth()
+    return () => { cancelled = true }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------- Login ────────────────────────────────────────────────────────
+  const login = useCallback(async (credentials) => {
     setLoading(true)
     setError(null)
-
     try {
-      const response = await loginRequest(credentials)
-      setUser({ ...response.user, token: response.token })
-      return response
+      const data = await apiLogin(credentials)
+      persistToken(data.token || data.access_token)
+      persistUser(data.user || data)
+      return data
     } catch (err) {
-      setError(err?.message || 'Unable to sign in')
+      const msg = err?.message || 'Login failed. Please check your credentials.'
+      setError(msg)
       throw err
     } finally {
       setLoading(false)
     }
-  }
+  }, [persistToken, persistUser])
 
-  const register = async (payload) => {
+  // ---------- Register ─────────────────────────────────────────────────────
+  const register = useCallback(async (userData) => {
     setLoading(true)
     setError(null)
-
     try {
-      const response = await registerRequest(payload)
-      setUser({ ...response.user, token: response.token })
-      return response
+      const data = await apiRegister(userData)
+      // Some backends auto-login after signup (return token); others don't.
+      if (data.token || data.access_token) {
+        persistToken(data.token || data.access_token)
+        persistUser(data.user || data)
+      }
+      return data
     } catch (err) {
-      setError(err?.message || 'Unable to create account')
+      const msg = err?.message || 'Registration failed. Please try again.'
+      setError(msg)
       throw err
     } finally {
       setLoading(false)
     }
-  }
+  }, [persistToken, persistUser])
 
-  const updatePrefs = async (newPrefs) => {
-    if (!user) return
+  // ---------- Logout ───────────────────────────────────────────────────────
+  const logout = useCallback(async () => {
+    setLoading(true)
     try {
-      const response = await updatePreferencesRequest(newPrefs)
-      setUser(currentUser => ({
-        ...currentUser,
-        ...response,
-        token: currentUser.token
-      }))
-      return response
-    } catch (err) {
-      console.error('Failed to update preferences:', err)
-      throw err
+      await apiLogout().catch(() => {})
+    } finally {
+      clearSession()
+      setUser(null)
+      setTokenState(null)
+      setError(null)
+      setLoading(false)
     }
+  }, [])
+
+  // ---------- Clear error helper ───────────────────────────────────────────
+  const clearError = useCallback(() => setError(null), [])
+
+  // ---------- Update Preferences ───────────────────────────────────────────
+  // Merges new prefs into the stored user object (local-only; extend with API
+  // call here when the backend endpoint is ready).
+  const updatePrefs = useCallback(async (prefs) => {
+    const updated = {
+      ...(user || {}),
+      preferences: {
+        ...(user?.preferences || {}),
+        ...prefs,
+      },
+    }
+    persistUser(updated)
+    return updated
+  }, [user, persistUser])
+
+  // ---------- Context value ────────────────────────────────────────────────
+  const value = {
+    user,
+    token,
+    loading,
+    error,
+    isAuthenticated: !!token && !!user,
+    login,
+    register,
+    logout,
+    clearError,
+    updatePrefs,
   }
 
-  const logout = () => {
-    setUser(null)
-  }
-
-  const value = useMemo(
-    () => ({ user, loading, error, login, register, logout, updatePrefs }),
-    [user, loading, error],
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
   )
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Hook — exported under BOTH names so every consumer works
+// ──────────────────────────────────────────────────────────────────────────────
 
 export function useAuthContext() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuthContext must be used within AuthProvider')
-  }
-  return context
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within an <AuthProvider>')
+  return ctx
 }
+
+// Alias used by ProtectedRoute and some components
+export const useAuth = useAuthContext
+
+export default AuthContext

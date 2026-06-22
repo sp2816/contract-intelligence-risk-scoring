@@ -2,42 +2,60 @@ import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import Navbar from './Navbar.jsx'
 import Sidebar from './Sidebar.jsx'
+import { useTheme } from '../../context/ThemeContext.jsx'
 import routePaths from '../../utils/routes.js'
-import { X, ShieldAlert } from 'lucide-react'
+import { X, ShieldAlert, LayoutDashboard, MessageSquare, FileText, User, Files } from 'lucide-react'
 
 const mobileNavItems = [
-  { label: 'Dashboard', path: routePaths.dashboard },
-  { label: 'Chatbot', path: routePaths.chatbot },
-  { label: 'Contract Analysis', path: routePaths.contractAnalysis },
-  { label: 'Profile', path: routePaths.profile },
+  { label: 'Dashboard', path: routePaths.dashboard, icon: LayoutDashboard },
+  { label: 'Contracts', path: routePaths.contracts, icon: Files },
+  { label: 'Chatbot', path: routePaths.chatbot, icon: MessageSquare },
+  { label: 'Contract Analysis', path: routePaths.contractAnalysis, icon: FileText },
+  { label: 'Profile', path: routePaths.profile, icon: User },
 ]
 
 function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
 
   return (
-    <div className="min-h-screen bg-slate-950 dark:bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar onToggleMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isMenuOpen={isMobileMenuOpen} />
-      
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
+      isLight ? 'bg-slate-50 text-slate-800' : 'bg-slate-950 text-slate-100'
+    }`}>
+      <Navbar
+        onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isSidebarCollapsed={isSidebarCollapsed}
+      />
+
       {/* Mobile Menu Drawer Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300"
+          <div
+            className={`fixed inset-0 backdrop-blur-sm transition-opacity duration-300 ${
+              isLight ? 'bg-slate-500/30' : 'bg-slate-950/80'
+            }`}
             onClick={() => setIsMobileMenuOpen(false)}
           />
           {/* Drawer content */}
-          <aside className="fixed bottom-0 left-0 top-0 flex w-72 flex-col gap-4 border-r border-slate-800 bg-slate-900 p-6 shadow-2xl transition-transform duration-300">
+          <aside className={`fixed bottom-0 left-0 top-0 flex w-72 flex-col gap-4 border-r p-6 shadow-2xl transition-transform duration-300 ${
+            isLight ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'
+          }`}>
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Workspace</p>
-                <h2 className="text-lg font-bold text-slate-100">Main Navigation</h2>
+                <p className={`text-xs uppercase tracking-[0.24em] ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Workspace</p>
+                <h2 className={`text-lg font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>Main Navigation</h2>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="rounded-full p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+                className={`rounded-full p-2 transition ${
+                  isLight ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
@@ -51,23 +69,28 @@ function AppShell() {
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                      isActive 
-                        ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30' 
+                    `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                      isActive
+                        ? 'bg-brand-500/20 text-brand-500 border border-brand-500/30'
+                        : isLight
+                        ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
                         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                     }`
                   }
                 >
+                  <item.icon className="h-5 w-5" />
                   {item.label}
                 </NavLink>
               ))}
             </nav>
 
-            <div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-5 text-sm text-slate-300 backdrop-blur-md">
-              <p className="font-semibold text-slate-200 flex items-center gap-2">
+            <div className={`rounded-3xl border p-5 text-sm backdrop-blur-md ${
+              isLight ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-slate-800 bg-slate-950/50 text-slate-300'
+            }`}>
+              <p className={`font-semibold flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
                 <ShieldAlert className="h-4 w-4 text-brand-400" /> Platform tools
               </p>
-              <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+              <p className={`mt-2 text-xs leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 Use the secure AI templates and analytics to accelerate contract review and scoring.
               </p>
             </div>
@@ -76,9 +99,15 @@ function AppShell() {
       )}
 
       {/* Main Grid Layout */}
-      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8">
-        <Sidebar />
-        <main className="overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-900/40 p-6 shadow-dark-soft backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/40">
+      <div
+        className={`mx-auto grid w-full flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:grid-cols-[80px_minmax(0,1fr)] max-w-[1600px]' : 'lg:grid-cols-[280px_minmax(0,1fr)] max-w-7xl'
+        }`}
+      >
+        <Sidebar isCollapsed={isSidebarCollapsed} />
+        <main className={`overflow-hidden rounded-[2rem] border p-6 shadow-dark-soft backdrop-blur-md transition-colors duration-300 ${
+          isLight ? 'border-slate-200 bg-white/80' : 'border-slate-800 bg-slate-900/40'
+        }`}>
           <Outlet />
         </main>
       </div>
@@ -87,4 +116,3 @@ function AppShell() {
 }
 
 export default AppShell
-

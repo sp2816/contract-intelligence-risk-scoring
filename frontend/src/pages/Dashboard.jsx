@@ -1,67 +1,198 @@
-import React, { useState, useMemo } from 'react'
-import { TrendingUp, AlertCircle, CheckCircle, BarChart3, Activity, Zap } from 'lucide-react'
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+// src/pages/Dashboard.jsx
+// ──────────────────────────────────────────────────────────────────────────────
+// Dashboard page — fully connected to the backend API.
+//
+// Data Flow
+//   useDashboardStats()
+//     ├─ GET /api/contracts/stats  → KPI cards + recent activity + AI insights
+//     └─ GET /api/contracts/       → full list for risk-trend chart
+//
+// UX States (per section)
+//   loading → animated pulse skeletons
+//   error   → inline error card with "Try Again" button (retry logic in hook)
+//   success → real data with fade-in animation
+// ──────────────────────────────────────────────────────────────────────────────
 
-// Sample data
-const riskTrendData = [
-  { month: 'Jan', avgRisk: 65, contracts: 12 },
-  { month: 'Feb', avgRisk: 58, contracts: 15 },
-  { month: 'Mar', avgRisk: 52, contracts: 18 },
-  { month: 'Apr', avgRisk: 48, contracts: 22 },
-  { month: 'May', avgRisk: 45, contracts: 25 },
-  { month: 'Jun', avgRisk: 42, contracts: 28 },
-]
+import React, { useMemo } from 'react'
+import {
+  TrendingUp, AlertCircle, CheckCircle, BarChart3,
+  Activity, Zap, RefreshCw,
+} from 'lucide-react'
+import {
+  AreaChart, Area, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
+import { useDashboardStats } from '../hooks/useDashboardStats'
 
-const recentContractData = [
-  { id: 1, name: 'Service Agreement - Acme Corp', date: '2024-06-10', riskScore: 28, status: 'Reviewed', category: 'Service' },
-  { id: 2, name: 'NDA - Tech Ventures Inc', date: '2024-06-09', riskScore: 15, status: 'Approved', category: 'Legal' },
-  { id: 3, name: 'License Agreement - DataFlow Ltd', date: '2024-06-08', riskScore: 62, status: 'Pending', category: 'License' },
-  { id: 4, name: 'Partnership Agreement - Global Solutions', date: '2024-06-07', riskScore: 45, status: 'Under Review', category: 'Partnership' },
-  { id: 5, name: 'Employment Contract - Internal', date: '2024-06-06', riskScore: 12, status: 'Approved', category: 'HR' },
-]
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
 
-const activityData = [
-  { id: 1, event: 'AI Analysis Complete', contract: 'Service Agreement - Acme Corp', time: '2 hours ago', icon: 'check' },
-  { id: 2, event: 'High Risk Alert', contract: 'License Agreement - DataFlow Ltd', time: '4 hours ago', icon: 'alert' },
-  { id: 3, event: 'Contract Reviewed', contract: 'NDA - Tech Ventures Inc', time: '6 hours ago', icon: 'check' },
-  { id: 4, event: 'Insights Generated', contract: 'Partnership Agreement', time: '8 hours ago', icon: 'zap' },
-  { id: 5, event: 'AI Processing Started', contract: 'Employment Contract', time: '10 hours ago', icon: 'activity' },
-]
+const HIGH_RISK_THRESHOLD = 60   // mirrors backend HIGH_RISK_THRESHOLD
 
-const aiInsights = [
-  { title: 'Liability Clauses', description: 'Found 3 potential liability issues across recent contracts', icon: 'alert', severity: 'high' },
-  { title: 'Payment Terms', description: 'Identified 5 contracts with unusual payment schedules', icon: 'zap', severity: 'medium' },
-  { title: 'Termination Rights', description: 'All reviewed contracts have standard termination clauses', icon: 'check', severity: 'low' },
-]
+// ─────────────────────────────────────────────────────────────────────────────
+// Skeleton Components
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Metric Widget Component
-function MetricWidget({ title, value, change, icon: Icon, color }) {
-  const isPositive = change >= 0
+function SkeletonMetricCard() {
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 shadow-dark-soft transition-all duration-300 hover:shadow-dark-glow dark:from-slate-800 dark:to-slate-900">
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-slate-700/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
-      <div className="relative space-y-4">
+    <div className="animate-pulse rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 shadow-dark-soft">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wide">{title}</h3>
-          <div className={`rounded-lg p-2 ${color}`}>
-            <Icon className="h-5 w-5 text-white" />
-          </div>
+          <div className="h-3 w-28 rounded-full bg-slate-700" />
+          <div className="h-9 w-9 rounded-lg bg-slate-700" />
         </div>
         <div>
-          <p className="text-4xl font-bold text-white">{value}</p>
-          <p className={`mt-1 text-sm ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-            {isPositive ? '+' : ''}{change}% from last month
-          </p>
+          <div className="h-10 w-20 rounded-lg bg-slate-700" />
+          <div className="mt-2 h-3 w-36 rounded-full bg-slate-700/50" />
         </div>
       </div>
     </div>
   )
 }
 
-// Chart Card Component
+function SkeletonChart() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-[300px] rounded-xl bg-slate-800/60" />
+    </div>
+  )
+}
+
+function SkeletonTable({ rows = 5 }) {
+  return (
+    <div className="animate-pulse">
+      {/* header row */}
+      <div className="flex gap-4 border-b border-slate-700 pb-3">
+        {[2, 1, 1, 1].map((f, i) => (
+          <div key={i} className="h-3 rounded-full bg-slate-700" style={{ flex: f }} />
+        ))}
+      </div>
+      {/* data rows */}
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 border-b border-slate-700/40 py-4">
+          <div className="h-4 flex-[2] rounded-full bg-slate-800" />
+          <div className="h-4 flex-1 rounded-full bg-slate-800" />
+          <div className="h-6 w-16 flex-none rounded-full bg-slate-800" />
+          <div className="h-6 w-20 flex-none rounded-full bg-slate-800" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SkeletonActivity({ rows = 5 }) {
+  return (
+    <div className="animate-pulse space-y-5">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4">
+          <div className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-700" />
+          <div className="flex-1 space-y-2 pt-1">
+            <div className="h-4 w-3/4 rounded-full bg-slate-700" />
+            <div className="h-3 w-1/2 rounded-full bg-slate-800" />
+            <div className="h-3 w-1/4 rounded-full bg-slate-800/60" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SkeletonInsights({ rows = 3 }) {
+  return (
+    <div className="animate-pulse space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4 rounded-xl border border-slate-700/40 bg-slate-800/40 p-4">
+          <div className="h-10 w-10 flex-shrink-0 rounded-lg bg-slate-700" />
+          <div className="flex-1 space-y-2 pt-1">
+            <div className="h-4 w-1/3 rounded-full bg-slate-700" />
+            <div className="h-3 w-2/3 rounded-full bg-slate-800" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error Card (inline error boundary)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ErrorCard({ message, onRetry, retryId = 'btn-retry', compact = false }) {
+  return (
+    <div
+      className={`flex items-center gap-4 rounded-xl border border-red-500/30 bg-red-900/10
+        ${compact ? 'p-4' : 'p-6'}`}
+      role="alert"
+      aria-live="assertive"
+    >
+      <AlertCircle className="h-6 w-6 flex-shrink-0 text-red-400" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <p className={`font-semibold text-red-300 ${compact ? 'text-sm' : 'text-base'}`}>
+          Failed to load data
+        </p>
+        <p className={`mt-0.5 text-red-400/80 ${compact ? 'text-xs' : 'text-sm'}`}>
+          {message}
+        </p>
+      </div>
+      {onRetry && (
+        <button
+          id={retryId}
+          type="button"
+          onClick={onRetry}
+          className="flex flex-shrink-0 items-center gap-2 rounded-lg border border-red-500/30
+            bg-red-900/20 px-4 py-2 text-sm font-semibold text-red-300 transition-all
+            hover:border-red-500/50 hover:bg-red-900/40
+            focus-visible:outline focus-visible:outline-2
+            focus-visible:outline-red-500 focus-visible:outline-offset-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try Again
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Metric Widget
+// ─────────────────────────────────────────────────────────────────────────────
+
+function MetricWidget({ id, title, value, subtitle, icon: Icon, color }) {
+  return (
+    <div
+      id={id}
+      className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900
+        to-slate-800 p-6 shadow-dark-soft transition-all duration-300
+        hover:shadow-dark-glow dark:from-slate-800 dark:to-slate-900"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent
+        to-slate-700/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="relative space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-slate-400">{title}</h3>
+          <div className={`rounded-lg p-2 ${color}`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+        </div>
+        <div>
+          <p className="text-4xl font-bold text-white">{value}</p>
+          {subtitle && <p className="mt-1 text-sm text-slate-400">{subtitle}</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chart Card wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+
 function ChartCard({ title, description, children }) {
   return (
-    <div className="animate-slide-up rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-6 shadow-dark-soft transition-all duration-300 hover:border-slate-600 dark:from-slate-800 dark:to-slate-900">
+    <div className="animate-slide-up rounded-2xl border border-slate-700 bg-gradient-to-br
+      from-slate-900 to-slate-800 p-6 shadow-dark-soft transition-all duration-300
+      hover:border-slate-600 dark:from-slate-800 dark:to-slate-900">
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-white">{title}</h2>
         {description && <p className="mt-1 text-sm text-slate-400">{description}</p>}
@@ -71,227 +202,585 @@ function ChartCard({ title, description, children }) {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Risk Trend Chart helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Aggregates the full contracts list into monthly buckets for the trend chart.
+ * Returns last 6 months, oldest → newest.
+ */
+function computeRiskTrend(contracts) {
+  const map = {}
+
+  contracts.forEach((c) => {
+    if (!c.upload_date) return
+    const d    = new Date(c.upload_date)
+    const key  = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`  // YYYY-MM
+    const label = d.toLocaleDateString('en-US', { month: 'short' })                 // "Jan"
+
+    if (!map[key]) map[key] = { label, scores: [], count: 0, ts: d.getTime() }
+    map[key].count++
+    if (c.risk_score != null) map[key].scores.push(c.risk_score)
+  })
+
+  return Object.entries(map)
+    .sort(([, a], [, b]) => a.ts - b.ts)
+    .slice(-6)
+    .map(([, { label, scores, count }]) => ({
+      month:    label,
+      avgRisk:  scores.length
+                  ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
+                  : null,
+      contracts: count,
+    }))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Recent Contracts Table
-function RecentContractsTable() {
-  const getRiskColor = (score) => {
-    if (score >= 60) return 'text-red-400 bg-red-900/20'
-    if (score >= 40) return 'text-yellow-400 bg-yellow-900/20'
-    return 'text-emerald-400 bg-emerald-900/20'
-  }
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Approved':
-        return 'text-emerald-400 bg-emerald-900/20'
-      case 'Pending':
-        return 'text-yellow-400 bg-yellow-900/20'
-      case 'Under Review':
-        return 'text-blue-400 bg-blue-900/20'
-      default:
-        return 'text-slate-400 bg-slate-700/20'
-    }
-  }
+function getRiskStyle(score) {
+  if (score == null)           return 'text-slate-400 bg-slate-700/20'
+  if (score >= HIGH_RISK_THRESHOLD) return 'text-red-400 bg-red-900/20'
+  if (score >= 40)             return 'text-yellow-400 bg-yellow-900/20'
+  return 'text-emerald-400 bg-emerald-900/20'
+}
 
+function getStatusStyle(status) {
+  switch (status?.toLowerCase()) {
+    case 'analyzed':
+    case 'approved':
+    case 'completed':
+    case 'analysis_complete':
+      return 'text-emerald-400 bg-emerald-900/20'
+    case 'processing':
+      return 'text-yellow-400 bg-yellow-900/20'
+    case 'uploaded':
+      return 'text-blue-400 bg-blue-900/20'
+    case 'reviewed':
+      return 'text-purple-400 bg-purple-900/20'
+    default:
+      return 'text-slate-400 bg-slate-700/20'
+  }
+}
+
+function formatDate(iso) {
+  if (!iso) return '—'
+  try {
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric',
+    }).format(new Date(iso))
+  } catch {
+    return iso
+  }
+}
+
+function RecentContractsTable({ recent, loading, error, onRetry }) {
   return (
-    <ChartCard title="Recent Contracts" description="Latest contract analyses and risk assessments">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-700">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Contract</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Category</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Risk Score</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentContractData.map((contract) => (
-              <tr key={contract.id} className="border-b border-slate-700/50 transition-colors hover:bg-slate-800/50">
-                <td className="px-4 py-4 text-sm font-medium text-slate-200">{contract.name}</td>
-                <td className="px-4 py-4 text-sm text-slate-400">{contract.date}</td>
-                <td className="px-4 py-4 text-sm text-slate-400">{contract.category}</td>
-                <td className="px-4 py-4">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getRiskColor(contract.riskScore)}`}>
-                    {contract.riskScore}%
-                  </span>
-                </td>
-                <td className="px-4 py-4">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(contract.status)}`}>
-                    {contract.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <ChartCard
+      title="Recent Contracts"
+      description="Latest contract analyses and risk assessments"
+    >
+      {loading && <SkeletonTable rows={5} />}
+
+      {!loading && error && (
+        <ErrorCard
+          message={error}
+          onRetry={onRetry}
+          retryId="btn-retry-contracts"
+          compact
+        />
+      )}
+
+      {!loading && !error && (
+        <div className="overflow-x-auto">
+          {recent.length === 0 ? (
+            <p className="py-10 text-center text-sm text-slate-500">
+              No contracts yet. Upload your first contract to get started.
+            </p>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  {['Contract', 'Date', 'Risk Score', 'Status'].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase
+                        tracking-wide text-slate-400"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((c) => (
+                  <tr
+                    key={c.id}
+                    className="border-b border-slate-700/50 transition-colors hover:bg-slate-800/50"
+                  >
+                    <td
+                      className="max-w-[220px] truncate px-4 py-4 text-sm
+                        font-medium text-slate-200"
+                      title={c.original_filename}
+                    >
+                      {c.original_filename}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-400">
+                      {formatDate(c.upload_date)}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs
+                          font-semibold ${getRiskStyle(c.risk_score)}`}
+                      >
+                        {c.risk_score != null ? `${c.risk_score}%` : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs
+                          font-semibold capitalize ${getStatusStyle(c.status)}`}
+                      >
+                        {c.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </ChartCard>
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Activity Timeline
-function ActivityTimeline() {
-  const getActivityIcon = (type) => {
+// ─────────────────────────────────────────────────────────────────────────────
+
+function classifyActivity(contract) {
+  const status = contract.status?.toLowerCase() ?? ''
+  if (['analyzed', 'analysis_complete', 'completed'].includes(status))
+    return { event: 'AI Analysis Complete', icon: 'check' }
+  if (status === 'processing')
+    return { event: 'AI Processing Started', icon: 'activity' }
+  if (contract.risk_score != null && contract.risk_score >= HIGH_RISK_THRESHOLD)
+    return { event: 'High Risk Alert', icon: 'alert' }
+  if (status === 'reviewed' || status === 'approved')
+    return { event: 'Contract Reviewed', icon: 'check' }
+  return { event: 'Contract Uploaded', icon: 'zap' }
+}
+
+function timeAgo(iso) {
+  if (!iso) return '—'
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1)  return 'Just now'
+  if (mins < 60) return `${mins} minute${mins !== 1 ? 's' : ''} ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24)  return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`
+  const days = Math.floor(hrs / 24)
+  return `${days} day${days !== 1 ? 's' : ''} ago`
+}
+
+function ActivityTimeline({ recent, loading, error, onRetry }) {
+  const activities = useMemo(
+    () => recent.map((c) => ({ ...classifyActivity(c), name: c.original_filename, time: timeAgo(c.upload_date), id: c.id })),
+    [recent]
+  )
+
+  const iconNode = (type) => {
     switch (type) {
-      case 'check':
-        return <CheckCircle className="h-5 w-5 text-emerald-400" />
-      case 'alert':
-        return <AlertCircle className="h-5 w-5 text-red-400" />
-      case 'zap':
-        return <Zap className="h-5 w-5 text-yellow-400" />
-      case 'activity':
-        return <Activity className="h-5 w-5 text-blue-400" />
-      default:
-        return <Activity className="h-5 w-5 text-slate-400" />
+      case 'check':    return <CheckCircle className="h-5 w-5 text-emerald-400" />
+      case 'alert':    return <AlertCircle className="h-5 w-5 text-red-400" />
+      case 'zap':      return <Zap className="h-5 w-5 text-yellow-400" />
+      case 'activity': return <Activity className="h-5 w-5 text-blue-400" />
+      default:         return <Activity className="h-5 w-5 text-slate-400" />
     }
   }
 
   return (
-    <ChartCard title="Activity Timeline" description="Recent contract processing and analysis events">
-      <div className="space-y-4">
-        {activityData.map((item, index) => (
-          <div key={item.id} className="flex gap-4 pb-4 last:pb-0">
-            <div className="flex flex-col items-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-700/50">
-                {getActivityIcon(item.icon)}
+    <ChartCard
+      title="Activity Timeline"
+      description="Recent contract processing and analysis events"
+    >
+      {loading && <SkeletonActivity rows={5} />}
+
+      {!loading && error && (
+        <ErrorCard
+          message={error}
+          onRetry={onRetry}
+          retryId="btn-retry-activity"
+          compact
+        />
+      )}
+
+      {!loading && !error && (
+        <div className="space-y-4">
+          {activities.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">No activity yet.</p>
+          ) : (
+            activities.map((item, index) => (
+              <div key={item.id} className="flex gap-4 pb-4 last:pb-0">
+                <div className="flex flex-col items-center">
+                  <div className="flex h-10 w-10 items-center justify-center
+                    rounded-full bg-slate-700/50">
+                    {iconNode(item.icon)}
+                  </div>
+                  {index !== activities.length - 1 && (
+                    <div className="mt-2 h-8 w-0.5 bg-gradient-to-b
+                      from-slate-600 to-slate-700" />
+                  )}
+                </div>
+                <div className="flex-1 pt-1">
+                  <p className="text-sm font-medium text-slate-200">{item.event}</p>
+                  <p className="text-xs text-slate-500">{item.name}</p>
+                  <p className="mt-1 text-xs text-slate-600">{item.time}</p>
+                </div>
               </div>
-              {index !== activityData.length - 1 && <div className="mt-2 h-8 w-0.5 bg-gradient-to-b from-slate-600 to-slate-700"></div>}
-            </div>
-            <div className="flex-1 pt-1">
-              <p className="text-sm font-medium text-slate-200">{item.event}</p>
-              <p className="text-xs text-slate-500">{item.contract}</p>
-              <p className="mt-1 text-xs text-slate-600">{item.time}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </ChartCard>
   )
 }
 
-// AI Insights Panel
-function AIInsightsPanel() {
-  const getInsightColor = (severity) => {
-    switch (severity) {
-      case 'high':
-        return 'border-red-500/30 bg-red-900/10'
-      case 'medium':
-        return 'border-yellow-500/30 bg-yellow-900/10'
-      case 'low':
-        return 'border-emerald-500/30 bg-emerald-900/10'
-      default:
-        return 'border-slate-500/30 bg-slate-900/10'
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Insights Panel (derived from live stats)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function deriveInsights(stats) {
+  if (!stats) return []
+
+  const insights = []
+
+  // High-risk alert
+  if (stats.high_risk_count > 0) {
+    insights.push({
+      title:       'High Risk Detected',
+      description: `${stats.high_risk_count} contract${stats.high_risk_count !== 1 ? 's' : ''} flagged as high risk (score ≥ ${HIGH_RISK_THRESHOLD}%)`,
+      icon:        'alert',
+      severity:    'high',
+    })
   }
 
-  const getInsightIcon = (type) => {
+  // Average risk level
+  if (stats.avg_risk_score != null) {
+    const severity = stats.avg_risk_score >= HIGH_RISK_THRESHOLD ? 'high'
+                   : stats.avg_risk_score >= 40                  ? 'medium'
+                   : 'low'
+    insights.push({
+      title:       'Portfolio Risk Level',
+      description: `Average risk score across analyzed contracts is ${stats.avg_risk_score}%`,
+      icon:        severity === 'low' ? 'check' : severity === 'medium' ? 'zap' : 'alert',
+      severity,
+    })
+  }
+
+  // Analysis coverage
+  if (stats.total_contracts > 0) {
+    const pct = stats.analyzed_count > 0
+      ? Math.round((stats.analyzed_count / stats.total_contracts) * 100)
+      : 0
+    insights.push({
+      title:       'Analysis Coverage',
+      description: `${pct}% of contracts (${stats.analyzed_count}/${stats.total_contracts}) have been analyzed`,
+      icon:        pct === 100 ? 'check' : pct > 50 ? 'zap' : 'alert',
+      severity:    pct === 100 ? 'low' : pct > 50 ? 'medium' : 'high',
+    })
+  }
+
+  return insights
+}
+
+const INSIGHT_BORDER = {
+  high:   'border-red-500/30 bg-red-900/10',
+  medium: 'border-yellow-500/30 bg-yellow-900/10',
+  low:    'border-emerald-500/30 bg-emerald-900/10',
+}
+
+const INSIGHT_ICON_COLOR = {
+  high: 'text-red-400', medium: 'text-yellow-400', low: 'text-emerald-400',
+}
+
+function AIInsightsPanel({ stats, loading, error, onRetry }) {
+  const insights = useMemo(() => deriveInsights(stats), [stats])
+
+  const insightIcon = (type) => {
     switch (type) {
-      case 'alert':
-        return <AlertCircle className="h-5 w-5" />
-      case 'check':
-        return <CheckCircle className="h-5 w-5" />
-      case 'zap':
-        return <Zap className="h-5 w-5" />
-      default:
-        return <BarChart3 className="h-5 w-5" />
+      case 'alert': return <AlertCircle className="h-5 w-5" />
+      case 'check': return <CheckCircle className="h-5 w-5" />
+      case 'zap':   return <Zap className="h-5 w-5" />
+      default:      return <BarChart3 className="h-5 w-5" />
     }
   }
 
   return (
-    <ChartCard title="AI Insights" description="Intelligent analysis and recommendations from contract reviews">
-      <div className="space-y-3">
-        {aiInsights.map((insight, index) => (
-          <div key={index} className={`flex gap-4 rounded-xl border p-4 transition-all duration-300 hover:border-opacity-50 ${getInsightColor(insight.severity)}`}>
-            <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-              insight.severity === 'high' ? 'text-red-400' : insight.severity === 'medium' ? 'text-yellow-400' : 'text-emerald-400'
-            }`}>
-              {getInsightIcon(insight.icon)}
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-slate-200">{insight.title}</p>
-              <p className="mt-1 text-sm text-slate-400">{insight.description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+    <ChartCard
+      title="AI Insights"
+      description="Intelligent analysis and recommendations from contract reviews"
+    >
+      {loading && <SkeletonInsights rows={3} />}
+
+      {!loading && error && (
+        <ErrorCard
+          message={error}
+          onRetry={onRetry}
+          retryId="btn-retry-insights"
+          compact
+        />
+      )}
+
+      {!loading && !error && (
+        <div className="space-y-3">
+          {insights.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">
+              No insights available yet. Upload and analyze contracts to get started.
+            </p>
+          ) : (
+            insights.map((insight, i) => (
+              <div
+                key={i}
+                className={`flex gap-4 rounded-xl border p-4 transition-all duration-300
+                  hover:border-opacity-70 ${INSIGHT_BORDER[insight.severity] ?? INSIGHT_BORDER.low}`}
+              >
+                <div
+                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center
+                    rounded-lg ${INSIGHT_ICON_COLOR[insight.severity] ?? 'text-slate-400'}`}
+                >
+                  {insightIcon(insight.icon)}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-slate-200">{insight.title}</p>
+                  <p className="mt-1 text-sm text-slate-400">{insight.description}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </ChartCard>
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Dashboard Component
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
-  const stats = [
-    { title: 'Total Contracts', value: 156, change: 12, icon: BarChart3, color: 'bg-blue-600' },
-    { title: 'Contracts Analyzed', value: 142, change: 28, icon: CheckCircle, color: 'bg-emerald-600' },
-    { title: 'Avg Risk Score', value: '38%', change: -15, icon: TrendingUp, color: 'bg-purple-600' },
-    { title: 'High Risk Alerts', value: 8, change: -25, icon: AlertCircle, color: 'bg-red-600' },
-  ]
+  const { stats, contracts, loading, error, retry } = useDashboardStats()
+
+  // Risk trend — computed from the full contracts list
+  const riskTrendData = useMemo(() => computeRiskTrend(contracts), [contracts])
+
+  // KPI metric cards definition (depends on live stats)
+  const metrics = useMemo(() => [
+    {
+      id:       'metric-total-contracts',
+      title:    'Total Contracts',
+      value:    stats?.total_contracts ?? '—',
+      subtitle: 'All uploaded contracts',
+      icon:     BarChart3,
+      color:    'bg-blue-600',
+    },
+    {
+      id:       'metric-analyzed',
+      title:    'Contracts Analyzed',
+      value:    stats?.analyzed_count ?? '—',
+      subtitle: 'Successfully analyzed',
+      icon:     CheckCircle,
+      color:    'bg-emerald-600',
+    },
+    {
+      id:       'metric-avg-risk',
+      title:    'Avg Risk Score',
+      value:    stats?.avg_risk_score != null ? `${stats.avg_risk_score}%` : '—',
+      subtitle: 'Across analyzed contracts',
+      icon:     TrendingUp,
+      color:    'bg-purple-600',
+    },
+    {
+      id:       'metric-high-risk',
+      title:    'High Risk Alerts',
+      value:    stats?.high_risk_count ?? '—',
+      subtitle: `Contracts scoring ≥ ${HIGH_RISK_THRESHOLD}%`,
+      icon:     AlertCircle,
+      color:    'bg-red-600',
+    },
+  ], [stats])
 
   return (
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
-      {/* Header */}
-      <div className="border-b border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-8">
+
+      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      <div className="border-b border-slate-800 bg-gradient-to-b
+        from-slate-900 to-slate-950 px-6 py-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Dashboard</p>
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-              Contract Intelligence
-            </h1>
-            <p className="mt-3 text-slate-400">AI-powered risk scoring and contract analysis</p>
+
+          {/* Title row */}
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Dashboard
+              </p>
+              <h1 className="mt-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
+                Contract Intelligence
+              </h1>
+              <p className="mt-3 text-slate-400">
+                AI-powered risk scoring and contract analysis
+              </p>
+            </div>
+
+            {/* Global retry button — only shown when there's an error */}
+            {!loading && error && (
+              <button
+                id="btn-retry-header"
+                type="button"
+                onClick={retry}
+                className="mt-4 flex flex-shrink-0 items-center gap-2 rounded-xl
+                  border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm
+                  font-medium text-slate-300 transition-all
+                  hover:border-slate-600 hover:bg-slate-700
+                  focus-visible:outline focus-visible:outline-2
+                  focus-visible:outline-slate-500 focus-visible:outline-offset-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh Dashboard
+              </button>
+            )}
           </div>
 
-          {/* Quick Stats */}
+          {/* ── KPI Metric Cards ──────────────────────────────────────────── */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat, index) => (
-              <div key={index} style={{ animationDelay: `${index * 100}ms` }} className="animate-slide-up">
-                <MetricWidget {...stat} />
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <SkeletonMetricCard key={i} />
+              ))
+            ) : error ? (
+              <div className="col-span-full">
+                <ErrorCard
+                  message={error}
+                  onRetry={retry}
+                  retryId="btn-retry-metrics"
+                />
               </div>
-            ))}
+            ) : (
+              metrics.map((stat, i) => (
+                <div
+                  key={stat.id}
+                  style={{ animationDelay: `${i * 80}ms` }}
+                  className="animate-slide-up"
+                >
+                  <MetricWidget {...stat} />
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ── Main Content ─────────────────────────────────────────────────── */}
       <div className="px-6 py-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          {/* Risk Trend Chart */}
-          <ChartCard 
-            title="Risk Trend Analysis" 
+
+          {/* ── Risk Trend Chart ─────────────────────────────────────────── */}
+          <ChartCard
+            title="Risk Trend Analysis"
             description="Average risk score and contract volume over the past 6 months"
           >
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={riskTrendData}>
-                <defs>
-                  <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="month" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
-                  labelStyle={{ color: '#e2e8f0' }}
-                />
-                <Legend />
-                <Area type="monotone" dataKey="avgRisk" stroke="#f43f5e" fillOpacity={1} fill="url(#colorRisk)" name="Avg Risk Score" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <SkeletonChart />
+            ) : error ? (
+              <ErrorCard
+                message={error}
+                onRetry={retry}
+                retryId="btn-retry-chart"
+                compact
+              />
+            ) : riskTrendData.length === 0 ? (
+              <div className="flex h-[300px] items-center justify-center">
+                <p className="text-sm text-slate-500">
+                  No trend data yet. Upload contracts to see analytics.
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={riskTrendData}>
+                  <defs>
+                    <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#f43f5e" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorContracts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #475569',
+                      borderRadius: '8px',
+                    }}
+                    labelStyle={{ color: '#e2e8f0' }}
+                    itemStyle={{ color: '#94a3b8' }}
+                  />
+                  <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }} />
+                  <Area
+                    type="monotone"
+                    dataKey="avgRisk"
+                    stroke="#f43f5e"
+                    fillOpacity={1}
+                    fill="url(#colorRisk)"
+                    name="Avg Risk Score"
+                    strokeWidth={2}
+                    connectNulls
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="contracts"
+                    stroke="#3b82f6"
+                    fillOpacity={1}
+                    fill="url(#colorContracts)"
+                    name="Total Contracts"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </ChartCard>
 
-          {/* Two Column Layout */}
+          {/* ── Two-column: Recent Contracts + AI Insights ───────────────── */}
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Recent Contracts */}
-            <RecentContractsTable />
-
-            {/* AI Insights */}
-            <AIInsightsPanel />
+            <RecentContractsTable
+              recent={stats?.recent_activity ?? []}
+              loading={loading}
+              error={error}
+              onRetry={retry}
+            />
+            <AIInsightsPanel
+              stats={stats}
+              loading={loading}
+              error={error}
+              onRetry={retry}
+            />
           </div>
 
-          {/* Activity Timeline */}
-          <ActivityTimeline />
+          {/* ── Activity Timeline ─────────────────────────────────────────── */}
+          <ActivityTimeline
+            recent={stats?.recent_activity ?? []}
+            loading={loading}
+            error={error}
+            onRetry={retry}
+          />
+
         </div>
       </div>
     </div>

@@ -5,7 +5,6 @@ import {
   Scale, FileText, ShieldAlert, BookOpen
 } from 'lucide-react'
 import MarkdownRenderer from '../components/common/MarkdownRenderer.jsx'
-import { getToken } from '../utils/tokenManager'
 
 // Local storage key
 const CHAT_STORAGE_KEY = 'lexai-chatbot-history'
@@ -42,6 +41,137 @@ const SUGGESTED_PROMPTS = [
   }
 ]
 
+// Mock responses database
+const getMockAIResponse = (userQuery) => {
+  const query = userQuery.toLowerCase()
+  
+  if (query.includes('nda') || query.includes('disclosure') || query.includes('confidential')) {
+    return `### **Mutual NDA Risk Analysis Report**
+
+Based on standard enterprise legal benchmarks, here is an automated risk assessment for Mutual Non-Disclosure Agreements (NDAs):
+
+#### **1. High-Risk Red Flags (Must Redline)**
+*   **Unilateral Obligations**: Ensure that confidentiality rules bind **both** parties equally. A one-sided NDA is highly unfavorable.
+*   **Definition of Confidential Information**: Watch out for rules requiring marked written tags (e.g., *"Must be marked as Confidential"*). Verbal disclosures should be covered if confirmed in writing within **30 days**.
+*   **Survival Period**: Standard term is **2 to 5 years** from disclosure. Be cautious of *"perpetual"* survival terms, unless dealing with trade secrets.
+*   **Intellectual Property Rights**: Beware of hidden clauses that imply licensing or assignment of patent/technology rights. NDAs should explicitly state **no licenses are granted**.
+
+---
+
+#### **2. Standard Permitted Exceptions**
+A standard NDA must exclude information that:
+1. Is or becomes publicly known through no breach of the receiving party.
+2. Was already in the receiving party's possession before receipt.
+3. Is independently developed without reference to the confidential info.
+4. Is rightfully obtained from a third party without confidentiality breaches.
+
+\`\`\`markdown
+[REDLINE SUGGESTION]
+"No License. Nothing in this Agreement shall be construed to grant Receiving Party any license, title, or interest in Disclosing Party's Intellectual Property Rights, which shall remain solely with the Disclosing Party."
+\`\`\`
+`
+  }
+
+  if (query.includes('liability') || query.includes('cap') || query.includes('limit')) {
+    return `### **Boilerplate Limitation of Liability (LoL) Drafting Guide**
+
+In commercial agreements, the Limitation of Liability is the most critical risk-transfer mechanism. Here is a balanced, board-ready draft and analysis:
+
+#### **1. Recommended Boilerplate Clause (Delaware Law)**
+
+\`\`\`javascript
+/**
+ * LIMITATION OF LIABILITY.
+ * EXCEPT FOR (A) A PARTY'S BREACH OF CONFIDENTIALITY OBLIGATIONS (SECTION 8), 
+ * (B) A PARTY'S INDEMNIFICATION OBLIGATIONS (SECTION 11), OR (C) GROSS 
+ * NEGLIGENCE OR WILLFUL MISCONDUCT:
+ * 
+ * 1. NEITHER PARTY WILL BE LIABLE FOR ANY CONSEQUENTIAL, INDIRECT, SPECIAL, 
+ *    PUNITIVE, OR INCIDENTAL DAMAGES ARISING OUT OF THIS AGREEMENT.
+ * 2. EACH PARTY'S TOTAL AGGREGATE LIABILITY UNDER THIS AGREEMENT SHALL BE 
+ *    LIMITED TO THE GREATER OF (X) FIFTY THOUSAND DOLLARS ($50,000) OR 
+ *    (Y) THE FEES PAID BY CUSTOMER TO PROVIDER IN THE TWELVE (12) MONTHS 
+ *    PRECEDING THE CLAIM.
+ */
+\`\`\`
+
+---
+
+#### **2. Key Negotation Guidelines**
+*   **Mutual vs Unilateral**: Always make LoL mutual unless provider risk is disproportionately higher.
+*   **Carve-outs (Exceptions)**: Never allow a total liability limit to apply to:
+    *   *Confidentiality breaches* (especially data breaches).
+    *   *IP Indemnification* claims (if your code infringes, you must cover the defense).
+    *   *Gross negligence / willful misconduct*.
+*   **Super Caps**: For data protection, implement a "Super Cap" (e.g., *2x or 3x the annual contract value*) instead of an unlimited carve-out to keep liability predictable.`
+  }
+
+  if (query.includes('force majeure') || query.includes('pandemic') || query.includes('disruption')) {
+    return `### **Force Majeure Boilerplate Clause & Analysis**
+
+A modern Force Majeure clause must account for supply chain dependencies and pandemics. Below is a legally resilient template:
+
+#### **1. Boilerplate Draft**
+\`\`\`markdown
+"Force Majeure. Neither party shall be liable for delay or failure to perform its obligations (excluding payment obligations) due to events beyond its reasonable control, including acts of God, strikes, war, terrorism, government regulations, orders, embargoes, pandemics, epidemics, natural disasters, or labor strikes. 
+
+The affected party shall:
+(i) Promptly notify the other party in writing, stating the expected duration;
+(ii) Exercise commercially reasonable efforts to mitigate the delay or failure. 
+
+If a Force Majeure event continues uninterrupted for more than forty-five (45) consecutive days, either party may terminate this Agreement immediately upon written notice, without penalty."
+\`\`\`
+
+---
+
+#### **2. Essential Drafting Checklist**
+*   **Exclusion of Payments**: Explicitly write that Force Majeure **does not excuse payment obligations** for services already delivered.
+*   **Mitigation Duty**: The affected party must show they tried to avoid the issue (e.g. disaster recovery, alternative supplier search).
+*   **Termination Threshold**: Allow termination if the blockage lasts too long (e.g., 30–60 days) to prevent either party from being trapped indefinitely.
+*   **Pandemic Exclusions**: Explicitly add *"pandemics, epidemics, and government lock-downs"* to avoid courts claiming covid-style events were foreseeable.`
+  }
+
+  if (query.includes('ip') || query.includes('work-made-for-hire') || query.includes('copyright') || query.includes('assignment')) {
+    return `### **Intellectual Property Rights: Work-for-Hire vs Assignment**
+
+Understanding how IP transfers between contractor and client is critical to avoiding litigation.
+
+| Concept | Work-Made-For-Hire | Assignment of IP |
+| :--- | :--- | :--- |
+| **Legal Basis** | US Copyright Act § 101 | General Contract Law (Assignment) |
+| **Ownership Timing** | Vest directly in the client from creation | Vests in contractor first, then transfers to client |
+| **Scope Limitation** | Only applies to employees OR 9 specific works | Appliable to any intellectual creations |
+| **Revocability** | Non-revocable by author | Subject to termination rights after 35 years |
+
+---
+
+#### **1. Best Practice Drafting Strategy**
+Because "Work-for-Hire" has strict statutory definitions, relying on it alone for contractors is a high risk. Standard boilerplate must include **both** concepts in a "Belt and Suspenders" approach:
+
+\`\`\`markdown
+"Ownership. Developer agrees that all deliverables created under this Agreement are 'work-made-for-hire' to the extent permitted by law. 
+To the extent any deliverables do not qualify as work-made-for-hire, Developer hereby irrevocably and perpetually assigns and transfers to Client all right, title, and interest in such deliverables, including all copyrights, patents, and trade secrets."
+\`\`\`
+
+---
+
+#### **2. Audit Warning**
+Check all developer contracts for *"Assigns in the future"* clauses (e.g., *"Developer agrees to assign..."*). This is an agreement to agree. Ensure the transfer uses **present assignment language**: **"Developer hereby assigns..."**`
+  }
+
+  // Fallback response
+  return `### **AI Legal Assistant Workspace**
+
+I am ready to assist you with contract analysis, drafting guidelines, risk limits, and regulatory compliance.
+
+Here are some commands or inquiries you can run:
+*   **"Analyze NDA risk limits"** (reviews confidentiality exclusions, terms, and red flags)
+*   **"Limit of liability clause drafting"** (provides Delaware templates, Super Caps, and indemnification guidelines)
+*   **"Boilerplate Force Majeure clause"** (evaluates supply chain delays and epidemics)
+*   **"IP Rights work-for-hire comparison"** (reviews copyright assignments and present transfers)
+
+> **Corporate Disclaimer**: *This chatbot provides AI-driven automated legal contract suggestions based on best practices. It does not constitute formal legal counsel. Please verify critical documents with corporate legal counsel.*`
+}
 
 export default function Chatbot() {
   const [chats, setChats] = useState(() => {
@@ -53,13 +183,14 @@ export default function Chatbot() {
         console.error(e)
       }
     }
+    // Default chat
     return [
       {
         id: 'chat-1',
         title: 'NDA Review Guidelines',
         messages: [
           { sender: 'user', text: 'Can you analyze standard risk limits and exceptions for mutual Non-Disclosure Agreements (NDAs)? Outline high risk red flags to watch out for.', time: '2:15 PM' },
-          { sender: 'assistant', text: '### **Mutual NDA Risk Analysis Report**\n\nBased on standard enterprise legal benchmarks, here is an automated risk assessment for Mutual Non-Disclosure Agreements (NDAs)...', time: '2:15 PM' }
+          { sender: 'assistant', text: getMockAIResponse('nda'), time: '2:15 PM' }
         ]
       },
       {
@@ -67,7 +198,7 @@ export default function Chatbot() {
         title: 'Boilerplate Liability Cap',
         messages: [
           { sender: 'user', text: 'Provide a boilerplate Limitation of Liability clause under Delaware law', time: 'Yesterday' },
-          { sender: 'assistant', text: '### **Boilerplate Limitation of Liability (LoL) Drafting Guide**\n\nIn commercial agreements, the Limitation of Liability is the most critical risk-transfer mechanism...', time: 'Yesterday' }
+          { sender: 'assistant', text: getMockAIResponse('liability'), time: 'Yesterday' }
         ]
       }
     ]
@@ -130,116 +261,44 @@ export default function Chatbot() {
     setEditingChatId(null)
   }
 
-  const handleSend = async (textToSend) => {
+  const handleSend = (textToSend) => {
     const text = textToSend || inputText
     if (!text.trim() || !activeChat) return
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const userMsg = { sender: 'user', text: text.trim(), time: now }
     
-    const aiMsgId = Date.now().toString()
-    const initialAiMsg = { id: aiMsgId, sender: 'assistant', text: '', time: now, isStreaming: true }
-    
-    const updatedMessages = [...activeChat.messages, userMsg, initialAiMsg]
-    
-    let currentTitle = activeChat.title
-    if (currentTitle.startsWith('Legal Session')) {
-      currentTitle = text.slice(0, 24) + (text.length > 24 ? '...' : '')
-    }
-
-    setChats(prevChats => prevChats.map(c => 
+    // Add user message
+    const updatedMessages = [...activeChat.messages, userMsg]
+    const updatedChats = chats.map(c => 
       c.id === activeChat.id 
-        ? { ...c, messages: updatedMessages, title: currentTitle } 
+        ? { 
+            ...c, 
+            messages: updatedMessages,
+            // Auto rename title if it was default
+            title: c.title.startsWith('Legal Session') ? text.slice(0, 24) + (text.length > 24 ? '...' : '') : c.title 
+          } 
         : c
-    ))
+    )
     
+    setChats(updatedChats)
     setInputText('')
     setIsGenerating(true)
 
-    try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
-      const token = getToken()
+    // Simulate AI response stream
+    setTimeout(() => {
+      const aiReplyText = getMockAIResponse(text)
+      const aiMsg = { sender: 'assistant', text: aiReplyText, time: now }
       
-      const response = await fetch(`${baseUrl}/chat/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ message: text.trim() })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`)
-      }
-
-      setIsGenerating(false) // Hide the bouncing dots once stream starts
-      
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder('utf-8')
-      let aiText = ''
-
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value, { stream: true })
-        // SSE sends lines like: data: {"content": "foo"}\n\n
-        const lines = chunk.split('\n')
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6)
-            if (dataStr.trim() === '[DONE]') break
-            try {
-              const data = JSON.parse(dataStr)
-              if (data.content) {
-                aiText += data.content
-                
-                // Update the chat with accumulated text
-                setChats(prevChats => prevChats.map(c => {
-                  if (c.id !== activeChat.id) return c
-                  const newMsgs = [...c.messages]
-                  const lastMsg = newMsgs[newMsgs.length - 1]
-                  if (lastMsg && lastMsg.sender === 'assistant' && lastMsg.id === aiMsgId) {
-                    lastMsg.text = aiText
-                  }
-                  return { ...c, messages: newMsgs }
-                }))
-              }
-            } catch (e) {
-              // Ignore partial JSON parsing errors which can happen if chunks are cut off
-            }
-          }
-        }
-      }
-      
-      // Stream finished
-      setChats(prevChats => prevChats.map(c => {
-        if (c.id !== activeChat.id) return c
-        const newMsgs = [...c.messages]
-        const lastMsg = newMsgs[newMsgs.length - 1]
-        if (lastMsg && lastMsg.sender === 'assistant' && lastMsg.id === aiMsgId) {
-          lastMsg.isStreaming = false
-        }
-        return { ...c, messages: newMsgs }
-      }))
-
-    } catch (error) {
-      console.error('Chat API Error:', error)
+      setChats(prevChats => 
+        prevChats.map(c => 
+          c.id === activeChat.id 
+            ? { ...c, messages: [...updatedMessages, aiMsg] } 
+            : c
+        )
+      )
       setIsGenerating(false)
-      
-      // Update the AI message to show error
-      setChats(prevChats => prevChats.map(c => {
-        if (c.id !== activeChat.id) return c
-        const newMsgs = [...c.messages]
-        const lastMsg = newMsgs[newMsgs.length - 1]
-        if (lastMsg && lastMsg.sender === 'assistant' && lastMsg.id === aiMsgId) {
-          lastMsg.text = '⚠️ Error: Unable to connect to the AI Legal Assistant. Please try again.'
-          lastMsg.isStreaming = false
-        }
-        return { ...c, messages: newMsgs }
-      }))
-    }
+    }, 1200)
   }
 
   // Get style variables based on current selection

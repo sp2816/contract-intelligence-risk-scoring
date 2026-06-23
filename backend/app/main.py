@@ -50,12 +50,8 @@ def create_app():
     from routes.contracts import contracts_bp
     app.register_blueprint(contracts_bp, url_prefix='/api/contracts')
     
-    from routes.chat import chat_bp
-    app.register_blueprint(chat_bp, url_prefix='/api/chat')
-    
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=5000)

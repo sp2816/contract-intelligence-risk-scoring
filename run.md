@@ -62,7 +62,7 @@ If you see `npm : The term 'npm' is not recognized` make sure Node is on your PA
 ### 4.2 (Optional) Create a `.env` for Vite
 Create `frontend\.env` with:
 ```
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=/api
 ```
 ### 4.3 Run the dev server
 ```cmd

@@ -10,7 +10,7 @@ import { getToken, clearSession } from '../utils/tokenManager'
  * • On 401 clears the session and redirects to /login
  */
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 })

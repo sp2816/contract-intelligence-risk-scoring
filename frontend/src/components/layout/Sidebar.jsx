@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import routePaths from '../../utils/routes.js'
-import { LayoutDashboard, MessageSquare, FileText, User, LogOut, Files } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, FileText, User, LogOut, Files, BarChart3 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { useTheme } from '../../context/ThemeContext.jsx'
 
@@ -9,6 +9,7 @@ const navItems = [
   { label: 'Contracts', path: routePaths.contracts, icon: Files },
   { label: 'Chatbot', path: routePaths.chatbot, icon: MessageSquare },
   { label: 'Contract Analysis', path: routePaths.contractAnalysis, icon: FileText },
+  { label: 'Analytics', path: routePaths.analytics, icon: BarChart3 },
   { label: 'Profile', path: routePaths.profile, icon: User },
 ]
 

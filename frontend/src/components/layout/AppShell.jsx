@@ -101,8 +101,8 @@ function AppShell() {
 
       {/* Main Grid Layout */}
       <div
-        className={`mx-auto grid w-full flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 transition-all duration-300 ${
-          isSidebarCollapsed ? 'lg:grid-cols-[80px_minmax(0,1fr)] max-w-[1600px]' : 'lg:grid-cols-[280px_minmax(0,1fr)] max-w-7xl'
+        className={`mx-auto grid w-full flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 transition-all duration-300 max-w-[1600px] ${
+          isSidebarCollapsed ? 'lg:grid-cols-[80px_minmax(0,1fr)]' : 'lg:grid-cols-[280px_minmax(0,1fr)]'
         }`}
       >
         <Sidebar isCollapsed={isSidebarCollapsed} />

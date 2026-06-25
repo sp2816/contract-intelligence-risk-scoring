@@ -123,7 +123,7 @@ const buildReportData = (data) => {
   }))
 
   const missing = []
-  if (contract.risk_score >= 60) {
+  if (contract.risk_score >= 71) {
     missing.push({
       name: 'Data Protection Addendum (DPA)',
       importance: 'CRITICAL',
@@ -155,7 +155,7 @@ const buildReportData = (data) => {
     effectiveDate: dateVal,
     governingLaw: lawVal,
     riskScore: contract.risk_score || 0,
-    riskLabel: contract.risk_score >= 60 ? 'HIGH RISK' : (contract.risk_score >= 40 ? 'MEDIUM RISK' : 'LOW RISK'),
+    riskLabel: contract.risk_score >= 71 ? 'HIGH RISK' : (contract.risk_score >= 31 ? 'MEDIUM RISK' : 'LOW RISK'),
     riskSummary: contract.contract_summary || 'Analysis complete.',
     clauses: mappedClauses,
     missingClauses: missing,

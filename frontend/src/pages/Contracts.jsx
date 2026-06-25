@@ -9,19 +9,19 @@ import { listContracts, deleteContract, analyzeContract, getContractDetails } fr
 import { useTheme } from '../context/ThemeContext'
 
 // --- Constants & Styles ---
-const HIGH_RISK_THRESHOLD = 60
+const HIGH_RISK_THRESHOLD = 71
 
 function getRiskLevel(score) {
   if (score == null) return 'pending'
   if (score >= HIGH_RISK_THRESHOLD) return 'high'
-  if (score >= 40) return 'medium'
+  if (score >= 31) return 'medium'
   return 'low'
 }
 
 function getRiskStyle(score) {
   if (score == null) return 'text-slate-400 bg-slate-700/20 border-slate-700/30'
   if (score >= HIGH_RISK_THRESHOLD) return 'text-rose-450 bg-rose-950/20 border-rose-900/30'
-  if (score >= 40) return 'text-amber-450 bg-amber-950/20 border-amber-900/30'
+  if (score >= 31) return 'text-amber-450 bg-amber-950/20 border-amber-900/30'
   return 'text-emerald-450 bg-emerald-950/20 border-emerald-900/30'
 }
 

@@ -120,3 +120,37 @@ Frontend React+Vite:
 Command: cmd.exe /c npm run dev
 URL: http://localhost:5173
 You can now open http://localhost:5173 in your browser to access the project and test the fixed authentication and password reset flows!
+
+The New Prompt:-
+Act as an elite Product Designer and Senior Frontend Engineer. I need to overhaul the UI, color palette, and typography of my "Contract Intelligence" dashboard based on a light mode interface (Screenshot 2026-06-25 144058.png) and dark mode interface (Screenshot 2026-06-25 144109.jpg). 
+
+The goal is to move away from generic, high-contrast block colors and basic fonts toward a premium, enterprise-grade, modern SaaS aesthetic (similar to Linear or Vercel). 
+
+Please implement the following changes for BOTH light and dark modes:
+
+### 1. COLOR PALETTE OVERHAUL
+- **Light Mode:** 
+  - Change the main background to a soft, warm off-white/gray (e.g., `#F9FAFB` or `#F8F9FA`).
+  - Card backgrounds should be pure white (`#FFFFFF`) with a very subtle, soft border (`#E5E7EB`) or an ultra-low opacity box shadow to create depth without harsh lines.
+  - Remove the intense bright purple highlight color on the sidebar "Dashboard" selection. Replace it with a subtle, muted slate or deep indigo accent hue.
+- **Dark Mode:**
+  - Avoid using harsh pure black or generic dark navy. Change the main background to a deep, sophisticated obsidian charcoal (e.g., `#090A0F` or `#0B0C10`).
+  - Card components should use a slightly elevated, lighter charcoal tier (e.g., `#12131A` or `#161722`) to create distinct depth layers.
+  - Ensure borders are extremely faint (e.g., `rgba(255,255,255,0.05)`).
+- **Status/Risk Colors (Both Modes):**
+  - Soften the stark, saturated red, orange, and green colors used in the charts, metric icons, and "Risk Level Guide". Use a refined, semi-pastel palette with excellent contrast accessibility (e.g., Emerald for Low Risk, Amber/Muted Gold for Medium Risk, and Rose/Coral for High Risk).
+
+### 2. TYPOGRAPHY & TEXT REFINEMENT
+- **Font System:** Replace the current default system font with a highly readable, premium geometric neo-grotesque typeface like Inter, Plus Jakarta Sans, or SF Pro.
+- **Text Hierarchy & Weights:**
+  - The main heading "Contract Intelligence" should use a bold or semi-bold weight, but slightly reduced in tracking (letter-spacing: -0.02em) to look cleaner.
+  - Large numeric display values (e.g., "4", "59.5%") should feature prominent, clean weights, but ensure small descriptive labels below them (e.g., "All uploaded contracts") use a muted, lower-contrast text color (e.g., slate-400 or zinc-500) to maximize visual hierarchy.
+  - Adjust the typography inside the gauge and donut charts so text is perfectly centered and balances cleanly within the geometric arcs.
+
+### 3. UI/UX EXPERIENCE & STRUCTURAL UPDATES
+- **Borders & Radii:** Standardize all component corners. Increase card and button border-radii to a smooth `12px` or `16px` (md/lg) for a friendlier, modern look.
+- **Sidebar & Navigation:** Make the sidebar background seamlessly blend with the main workspace background, utilizing subtle divider lines rather than blocky container differences. Give hover states a micro-interaction effect (slight opacity shift or a tiny translation).
+- **Search Bar & Top Nav:** Reduce the padding of the top header. The search bar should be sleek, using a minimal background tint with a faint, clean focus ring when active.
+- **Charts:** Refine the "Overall Risk Score" half-gauge and the "Risk Distribution" donut chart. Make the strokes slightly thinner, smoother, and use professional anti-aliased rendering.
+
+Please provide the updated global CSS variables, Tailwind configuration (if applicable), and refactored React/HTML components implementing these visual style upgrades.

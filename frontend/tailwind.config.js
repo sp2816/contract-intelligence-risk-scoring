@@ -59,6 +59,7 @@ export default {
         'glow-pulse': 'glowPulse 3s ease-in-out infinite',
         'spin-slow': 'spin 8s linear infinite',
         'bounce-subtle': 'bounceSubtle 2s ease-in-out infinite',
+        'page-enter': 'pageEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       },
       keyframes: {
         fadeIn: {
@@ -104,6 +105,10 @@ export default {
         bounceSubtle: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-3px)' },
+        },
+        pageEnter: {
+          '0%':   { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
       backdropBlur: {

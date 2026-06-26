@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import Navbar from './Navbar.jsx'
 import Sidebar from './Sidebar.jsx'
+import NavigationProgress from './NavigationProgress.jsx'
+import PageTransition from './PageTransition.jsx'
 import { useTheme } from '../../context/ThemeContext.jsx'
 import routePaths from '../../utils/routes.js'
 import { X, ShieldAlert, LayoutDashboard, MessageSquare, FileText, User, Files, BarChart3 } from 'lucide-react'
@@ -25,6 +27,7 @@ function AppShell() {
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
       isLight ? 'bg-slate-50 text-slate-800' : 'bg-slate-950 text-slate-100'
     }`}>
+      <NavigationProgress />
       <Navbar
         onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         isMobileMenuOpen={isMobileMenuOpen}
@@ -109,7 +112,9 @@ function AppShell() {
         <main className={`overflow-hidden rounded-[2rem] border p-6 shadow-dark-soft backdrop-blur-md transition-colors duration-300 ${
           isLight ? 'border-slate-200 bg-white/80' : 'border-slate-800 bg-slate-900/40'
         }`}>
-          <Outlet />
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
         </main>
       </div>
     </div>

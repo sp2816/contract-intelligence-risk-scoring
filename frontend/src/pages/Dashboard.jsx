@@ -29,6 +29,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar,
 } from 'recharts'
 import { useDashboardStats } from '../hooks/useDashboardStats'
+import { useChartReady } from '../components/layout/PageTransition'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants & Risk Levels
@@ -249,7 +250,7 @@ function RiskBreakdownDonut({ contracts }) {
               outerRadius={80}
               paddingAngle={3}
               dataKey="value"
-              animationBegin={200}
+              animationBegin={0}
               animationDuration={1200}
               animationEasing="ease-out"
               strokeWidth={0}
@@ -307,8 +308,10 @@ function AnimatedBar({ value, maxValue, color, delay = 0 }) {
   const [width, setWidth] = useState(0)
   const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0
 
+  // Reset to 0 and re-animate whenever the target value changes
   useEffect(() => {
-    const timer = setTimeout(() => setWidth(percentage), 200 + delay)
+    setWidth(0)
+    const timer = setTimeout(() => setWidth(percentage), 80 + delay)
     return () => clearTimeout(timer)
   }, [percentage, delay])
 
@@ -944,6 +947,7 @@ function AIInsightsPanel({ stats, loading, error, onRetry }) {
 
 export default function Dashboard() {
   const { stats, contracts, loading, error, retry } = useDashboardStats()
+  const chartReady = useChartReady()
 
   // Risk trend — computed from the full contracts list
   const riskTrendData = useMemo(() => computeRiskTrend(contracts), [contracts])
@@ -1123,8 +1127,10 @@ export default function Dashboard() {
                 <SkeletonChart />
               ) : error ? (
                 <ErrorCard message={error} onRetry={retry} retryId="btn-retry-donut" compact />
-              ) : (
+              ) : chartReady ? (
                 <RiskBreakdownDonut contracts={contracts} />
+              ) : (
+                <SkeletonChart />
               )}
             </ChartCard>
 
@@ -1181,12 +1187,8 @@ export default function Dashboard() {
                 retryId="btn-retry-chart"
                 compact
               />
-            ) : riskTrendData.length === 0 ? (
-              <div className="flex h-[300px] items-center justify-center">
-                <p className="text-sm text-slate-500">
-                  No trend data yet. Upload contracts to see analytics.
-                </p>
-              </div>
+            ) : !chartReady ? (
+              <SkeletonChart />
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={riskTrendData}>
@@ -1214,7 +1216,8 @@ export default function Dashboard() {
                     name="Avg Risk Score"
                     strokeWidth={2.5}
                     connectNulls
-                    animationDuration={1500}
+                    animationBegin={0}
+                    animationDuration={1400}
                     animationEasing="ease-out"
                   />
                   <Area
@@ -1225,7 +1228,8 @@ export default function Dashboard() {
                     fill="url(#colorContracts)"
                     name="Total Contracts"
                     strokeWidth={2.5}
-                    animationDuration={1500}
+                    animationBegin={0}
+                    animationDuration={1400}
                     animationEasing="ease-out"
                   />
                 </AreaChart>
@@ -1242,8 +1246,10 @@ export default function Dashboard() {
               <SkeletonInsights rows={5} />
             ) : error ? (
               <ErrorCard message={error} onRetry={retry} retryId="btn-retry-categories" compact />
-            ) : (
+            ) : chartReady ? (
               <RiskCategoriesPanel contracts={contracts} />
+            ) : (
+              <SkeletonInsights rows={5} />
             )}
           </ChartCard>
 

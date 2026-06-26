@@ -333,3 +333,22 @@ select {
 [data-theme="light"] pre code {
   background-color: transparent !important;
 }
+
+/* ──────────────────────────
+   Navigation Progress Bar
+   ────────────────────────── */
+@keyframes navProgressPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1;   }
+}
+
+/* ──────────────────────────
+   Accessibility: reduced motion
+   ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

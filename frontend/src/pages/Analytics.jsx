@@ -11,40 +11,43 @@
 //   5. Risk Velocity (Line Chart — rate of change)
 //   6. Contract Pipeline (Horizontal Bar)
 //   7. Compliance Heatmap (custom grid)
+//
+// FIX: Charts are gated behind useChartReady() from PageTransition context.
+//      This ensures Recharts animations ALWAYS fire after the page is visible.
+//      KPI values are gated behind loading === false to prevent data flicker.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   TrendingUp, Shield, FileText, CheckCircle, AlertTriangle,
   BarChart3, Activity, Zap, Eye, Clock, ArrowUpRight,
-  ArrowDownRight, Minus, Sparkles, Target, Scale,
-  Lock, ShieldCheck, ShieldAlert,
+  ArrowDownRight, Minus, Sparkles, Target,
+  ShieldAlert,
 } from 'lucide-react'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell,
-  AreaChart, Area, RadialBarChart, RadialBar,
+  AreaChart, Area,
 } from 'recharts'
 import { fetchDashboardStats, listContracts } from '../api/contracts'
+import { useChartReady } from '../components/layout/PageTransition'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design Tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PALETTE = {
-  emerald:  { main: '#10b981', light: '#34d399', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-  amber:    { main: '#f59e0b', light: '#fbbf24', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-  rose:     { main: '#f43f5e', light: '#fb7185', bg: 'rgba(244,63,94,0.08)',  border: 'rgba(244,63,94,0.2)' },
-  blue:     { main: '#3b82f6', light: '#60a5fa', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
-  violet:   { main: '#8b5cf6', light: '#a78bfa', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
-  cyan:     { main: '#06b6d4', light: '#22d3ee', bg: 'rgba(6,182,212,0.08)',  border: 'rgba(6,182,212,0.2)' },
-  slate:    { main: '#64748b', light: '#94a3b8', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' },
+  emerald: { main: '#10b981', light: '#34d399', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
+  amber:   { main: '#f59e0b', light: '#fbbf24', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+  rose:    { main: '#f43f5e', light: '#fb7185', bg: 'rgba(244,63,94,0.08)',  border: 'rgba(244,63,94,0.2)'  },
+  blue:    { main: '#3b82f6', light: '#60a5fa', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
+  violet:  { main: '#8b5cf6', light: '#a78bfa', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
+  cyan:    { main: '#06b6d4', light: '#22d3ee', bg: 'rgba(6,182,212,0.08)',  border: 'rgba(6,182,212,0.2)'  },
+  slate:   { main: '#64748b', light: '#94a3b8', bg: 'rgba(100,116,139,0.08)',border: 'rgba(100,116,139,0.2)' },
 }
 
-const CHART_COLORS = [PALETTE.emerald.main, PALETTE.amber.main, PALETTE.rose.main, PALETTE.blue.main, PALETTE.violet.main]
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Animated Number
+// Animated Counter — only starts counting once value is valid
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1000 }) {
@@ -56,9 +59,9 @@ function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1000 }) {
     const startTime = performance.now()
 
     function tick(now) {
-      const elapsed = now - startTime
+      const elapsed  = now - startTime
       const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 4) // easeOutQuart
+      const eased    = 1 - Math.pow(1 - progress, 4) // easeOutQuart
       setCount(Math.round(eased * target))
       if (progress < 1) requestAnimationFrame(tick)
     }
@@ -97,7 +100,7 @@ function SkeletonChart({ height = 300 }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reusable Card
+// Chart Panel Card
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ChartPanel({ title, subtitle, icon: Icon, iconColor, children, className = '', badge }) {
@@ -211,12 +214,12 @@ function KPICard({ label, value, suffix = '', trend, trendLabel, icon: Icon, col
 // ─────────────────────────────────────────────────────────────────────────────
 
 const COMPLIANCE_AREAS = [
-  { name: 'Data Privacy', key: 'privacy' },
-  { name: 'IP Protection', key: 'ip' },
-  { name: 'Liability Caps', key: 'liability' },
-  { name: 'Termination', key: 'termination' },
-  { name: 'Force Majeure', key: 'force_majeure' },
-  { name: 'Indemnification', key: 'indemnity' },
+  { name: 'Data Privacy',    key: 'privacy'     },
+  { name: 'IP Protection',   key: 'ip'          },
+  { name: 'Liability Caps',  key: 'liability'   },
+  { name: 'Termination',     key: 'termination' },
+  { name: 'Force Majeure',   key: 'force_majeure' },
+  { name: 'Indemnification', key: 'indemnity'   },
 ]
 
 function ComplianceHeatmap({ contracts }) {
@@ -247,11 +250,7 @@ function ComplianceHeatmap({ contracts }) {
           <div
             key={item.key}
             className="group rounded-xl border p-4 transition-all duration-300 hover:scale-[1.02]"
-            style={{
-              backgroundColor: colors.bg,
-              borderColor: colors.border,
-              animationDelay: `${i * 80}ms`,
-            }}
+            style={{ backgroundColor: colors.bg, borderColor: colors.border, animationDelay: `${i * 80}ms` }}
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{item.name}</p>
             <p className="mt-1 text-2xl font-extrabold" style={{ color: colors.text }}>
@@ -275,10 +274,16 @@ function ComplianceHeatmap({ contracts }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Analytics() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [stats, setStats] = useState(null)
+  // ── Data loading state ─────────────────────────────────────────────────────
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
+  const [stats,     setStats]     = useState(null)
   const [contracts, setContracts] = useState([])
+
+  // ── Chart gate: true once page-enter transition finishes ───────────────────
+  // This is the core fix — charts only mount AFTER the page is fully visible,
+  // so their entrance animations always play at full opacity.
+  const chartReady = useChartReady()
 
   useEffect(() => { loadData() }, [])
 
@@ -311,66 +316,59 @@ export default function Analytics() {
       else counts.high++
     })
     return [
-      { name: 'Low (0–30)',    value: counts.low,    fill: PALETTE.emerald.main },
-      { name: 'Medium (31–70)', value: counts.medium, fill: PALETTE.amber.main },
-      { name: 'High (71–100)',  value: counts.high,   fill: PALETTE.rose.main },
+      { name: 'Low (0–30)',     value: counts.low,    fill: PALETTE.emerald.main },
+      { name: 'Medium (31–70)', value: counts.medium, fill: PALETTE.amber.main   },
+      { name: 'High (71–100)', value: counts.high,   fill: PALETTE.rose.main    },
     ]
   }, [contracts])
 
   const monthlyTrends = useMemo(() => {
     const map = {}
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
     contracts.forEach(c => {
       if (!c.upload_date) return
-      const d = new Date(c.upload_date)
+      const d   = new Date(c.upload_date)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const label = months[d.getMonth()]
 
       if (!map[key]) map[key] = { month: label, uploads: 0, totalScore: 0, scored: 0, ts: d.getTime() }
       map[key].uploads++
-      if (c.risk_score != null) {
-        map[key].totalScore += c.risk_score
-        map[key].scored++
-      }
+      if (c.risk_score != null) { map[key].totalScore += c.risk_score; map[key].scored++ }
     })
 
     const entries = Object.values(map)
       .sort((a, b) => a.ts - b.ts)
       .slice(-8)
-      .map(m => ({
-        month: m.month,
-        uploads: m.uploads,
-        avgRisk: m.scored > 0 ? Math.round(m.totalScore / m.scored) : null,
-      }))
+      .map(m => ({ month: m.month, uploads: m.uploads, avgRisk: m.scored > 0 ? Math.round(m.totalScore / m.scored) : null }))
 
-    // Fallback data for demo
+    // Fallback demo data
     if (entries.length < 3) {
       return [
-        { month: 'Jan', uploads: 3, avgRisk: 38 },
-        { month: 'Feb', uploads: 5, avgRisk: 45 },
-        { month: 'Mar', uploads: 8, avgRisk: 52 },
-        { month: 'Apr', uploads: 6, avgRisk: 41 },
+        { month: 'Jan', uploads: 3,  avgRisk: 38 },
+        { month: 'Feb', uploads: 5,  avgRisk: 45 },
+        { month: 'Mar', uploads: 8,  avgRisk: 52 },
+        { month: 'Apr', uploads: 6,  avgRisk: 41 },
         { month: 'May', uploads: 11, avgRisk: 58 },
-        { month: 'Jun', uploads: 9, avgRisk: 47 },
+        { month: 'Jun', uploads: 9,  avgRisk: 47 },
       ]
     }
     return entries
   }, [contracts])
 
   const clauseIntelligence = useMemo(() => [
-    { name: 'Confidentiality',  value: 38, color: PALETTE.blue.main },
-    { name: 'Liability Caps',   value: 27, color: PALETTE.rose.main },
-    { name: 'Termination',      value: 18, color: PALETTE.amber.main },
-    { name: 'IP Assignment',    value: 12, color: PALETTE.violet.main },
-    { name: 'Force Majeure',    value: 5,  color: PALETTE.cyan.main },
+    { name: 'Confidentiality', value: 38, color: PALETTE.blue.main   },
+    { name: 'Liability Caps',  value: 27, color: PALETTE.rose.main   },
+    { name: 'Termination',     value: 18, color: PALETTE.amber.main  },
+    { name: 'IP Assignment',   value: 12, color: PALETTE.violet.main },
+    { name: 'Force Majeure',   value: 5,  color: PALETTE.cyan.main   },
   ], [])
 
   const riskVelocity = useMemo(() => {
     if (monthlyTrends.length < 2) return []
     return monthlyTrends.map((m, i) => ({
-      month: m.month,
-      velocity: i === 0 ? 0 : (m.avgRisk || 0) - (monthlyTrends[i - 1].avgRisk || 0),
+      month:      m.month,
+      velocity:   i === 0 ? 0 : (m.avgRisk || 0) - (monthlyTrends[i - 1].avgRisk || 0),
       cumulative: m.avgRisk || 0,
     }))
   }, [monthlyTrends])
@@ -381,17 +379,15 @@ export default function Analytics() {
       const status = c.status || 'unknown'
       statusMap[status] = (statusMap[status] || 0) + 1
     })
-
     const statusColors = {
-      uploaded: PALETTE.blue.main,
-      processing: PALETTE.amber.main,
-      analyzed: PALETTE.emerald.main,
-      analysis_complete: PALETTE.emerald.main,
-      completed: PALETTE.emerald.main,
-      reviewed: PALETTE.violet.main,
-      approved: PALETTE.cyan.main,
+      uploaded:         PALETTE.blue.main,
+      processing:       PALETTE.amber.main,
+      analyzed:         PALETTE.emerald.main,
+      analysis_complete:PALETTE.emerald.main,
+      completed:        PALETTE.emerald.main,
+      reviewed:         PALETTE.violet.main,
+      approved:         PALETTE.cyan.main,
     }
-
     return Object.entries(statusMap).map(([status, count]) => ({
       status: status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' '),
       count,
@@ -399,12 +395,12 @@ export default function Analytics() {
     }))
   }, [contracts])
 
-  // ── KPI Metrics ────────────────────────────────────────────────────────────
-
-  const total = stats?.total_contracts ?? 0
-  const analyzed = stats?.analyzed_count ?? 0
-  const avgRisk = stats?.avg_risk_score ?? 0
-  const highRisk = stats?.high_risk_count ?? 0
+  // ── KPI Metrics — only derived when loading is complete to prevent flicker ─
+  // Using null-guard instead of default 0 so AnimatedCounter starts fresh each time
+  const total    = loading ? null : (stats?.total_contracts ?? 0)
+  const analyzed = loading ? null : (stats?.analyzed_count  ?? 0)
+  const avgRisk  = loading ? null : Math.round(stats?.avg_risk_score ?? 0)
+  const highRisk = loading ? null : (stats?.high_risk_count  ?? 0)
 
   // ── Error State ────────────────────────────────────────────────────────────
 
@@ -426,6 +422,9 @@ export default function Analytics() {
       </div>
     )
   }
+
+  // ── Whether to show chart content (both data loaded AND transition done) ───
+  const showCharts = !loading && chartReady
 
   return (
     <div className="space-y-8">
@@ -460,10 +459,10 @@ export default function Analytics() {
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <KPICard label="Total Contracts" value={total} icon={FileText} color={PALETTE.blue.main} trend={12} delay={0} />
-            <KPICard label="Analyzed" value={analyzed} icon={CheckCircle} color={PALETTE.emerald.main} trend={8} trendLabel="completion rate" delay={80} />
-            <KPICard label="Avg Risk Score" value={avgRisk} suffix="%" icon={Target} color={PALETTE.amber.main} trend={-3} trendLabel="vs last quarter" delay={160} />
-            <KPICard label="High Risk Flags" value={highRisk} icon={ShieldAlert} color={PALETTE.rose.main} trend={highRisk > 0 ? 5 : 0} delay={240} />
+            <KPICard label="Total Contracts"  value={total}    icon={FileText}    color={PALETTE.blue.main}    trend={12}                      delay={0}   />
+            <KPICard label="Analyzed"         value={analyzed} icon={CheckCircle} color={PALETTE.emerald.main} trend={8}   trendLabel="completion rate" delay={80}  />
+            <KPICard label="Avg Risk Score"   value={avgRisk}  suffix="%" icon={Target}      color={PALETTE.amber.main}   trend={-3}  trendLabel="vs last quarter" delay={160} />
+            <KPICard label="High Risk Flags"  value={highRisk} icon={ShieldAlert} color={PALETTE.rose.main}    trend={highRisk > 0 ? 5 : 0}    delay={240} />
           </>
         )}
       </div>
@@ -479,7 +478,7 @@ export default function Analytics() {
           iconColor={PALETTE.emerald.main}
           badge="Bar Chart"
         >
-          {loading ? <SkeletonChart height={280} /> : (
+          {!showCharts ? <SkeletonChart height={280} /> : (
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={riskDistribution} barCategoryGap="25%">
@@ -487,7 +486,9 @@ export default function Analytics() {
                   <XAxis dataKey="name" stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148,163,184,0.05)' }} />
-                  <Bar dataKey="value" name="Contracts" radius={[8, 8, 0, 0]} animationDuration={1500} animationEasing="ease-out">
+                  <Bar dataKey="value" name="Contracts" radius={[8, 8, 0, 0]}
+                    animationBegin={0} animationDuration={1400} animationEasing="ease-out"
+                  >
                     {riskDistribution.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
@@ -506,7 +507,7 @@ export default function Analytics() {
           iconColor={PALETTE.violet.main}
           badge="Pie Chart"
         >
-          {loading ? <SkeletonChart height={280} /> : (
+          {!showCharts ? <SkeletonChart height={280} /> : (
             <div className="flex flex-col items-center gap-5 sm:flex-row lg:flex-col xl:flex-row sm:gap-6 lg:gap-4 xl:gap-6">
               <div className="relative">
                 <ResponsiveContainer width={200} height={200}>
@@ -519,8 +520,8 @@ export default function Analytics() {
                       outerRadius={85}
                       paddingAngle={3}
                       dataKey="value"
-                      animationBegin={300}
-                      animationDuration={1500}
+                      animationBegin={0}
+                      animationDuration={1400}
                       animationEasing="ease-out"
                       strokeWidth={0}
                     >
@@ -564,17 +565,17 @@ export default function Analytics() {
           iconColor={PALETTE.blue.main}
           badge="Area Chart"
         >
-          {loading ? <SkeletonChart height={300} /> : (
+          {!showCharts ? <SkeletonChart height={300} /> : (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyTrends}>
                   <defs>
                     <linearGradient id="gradUploads" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={PALETTE.blue.main} stopOpacity={0.25} />
+                      <stop offset="5%"  stopColor={PALETTE.blue.main} stopOpacity={0.25} />
                       <stop offset="95%" stopColor={PALETTE.blue.main} stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gradRisk" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={PALETTE.rose.main} stopOpacity={0.2} />
+                      <stop offset="5%"  stopColor={PALETTE.rose.main} stopOpacity={0.2} />
                       <stop offset="95%" stopColor={PALETTE.rose.main} stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -583,8 +584,8 @@ export default function Analytics() {
                   <YAxis stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }} />
-                  <Area type="monotone" dataKey="uploads" name="Uploads" stroke={PALETTE.blue.main} fill="url(#gradUploads)" strokeWidth={2.5} animationDuration={1500} />
-                  <Area type="monotone" dataKey="avgRisk" name="Avg Risk %" stroke={PALETTE.rose.main} fill="url(#gradRisk)" strokeWidth={2.5} connectNulls animationDuration={1800} />
+                  <Area type="monotone" dataKey="uploads"  name="Uploads"     stroke={PALETTE.blue.main} fill="url(#gradUploads)" strokeWidth={2.5} animationBegin={0} animationDuration={1400} />
+                  <Area type="monotone" dataKey="avgRisk"  name="Avg Risk %"  stroke={PALETTE.rose.main} fill="url(#gradRisk)"    strokeWidth={2.5} connectNulls animationBegin={0} animationDuration={1700} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -599,7 +600,7 @@ export default function Analytics() {
           iconColor={PALETTE.amber.main}
           badge="Line Chart"
         >
-          {loading ? <SkeletonChart height={300} /> : (
+          {!showCharts ? <SkeletonChart height={300} /> : (
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={riskVelocity}>
@@ -608,8 +609,8 @@ export default function Analytics() {
                   <YAxis stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }} />
-                  <Line type="monotone" dataKey="velocity" name="Risk Change (Δ)" stroke={PALETTE.amber.main} strokeWidth={2.5} dot={{ fill: PALETTE.amber.main, r: 4, strokeWidth: 2, stroke: '#0f172a' }} activeDot={{ r: 6, strokeWidth: 3 }} animationDuration={1500} />
-                  <Line type="monotone" dataKey="cumulative" name="Cumulative Risk %" stroke={PALETTE.violet.main} strokeWidth={2} strokeDasharray="5 5" dot={false} animationDuration={1800} />
+                  <Line type="monotone" dataKey="velocity"   name="Risk Change (Δ)"   stroke={PALETTE.amber.main}  strokeWidth={2.5} dot={{ fill: PALETTE.amber.main, r: 4, strokeWidth: 2, stroke: '#0f172a' }} activeDot={{ r: 6, strokeWidth: 3 }} animationBegin={0} animationDuration={1400} />
+                  <Line type="monotone" dataKey="cumulative" name="Cumulative Risk %"  stroke={PALETTE.violet.main} strokeWidth={2} strokeDasharray="5 5" dot={false} animationBegin={0} animationDuration={1700} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -628,7 +629,7 @@ export default function Analytics() {
           iconColor={PALETTE.cyan.main}
           badge="Bar Chart"
         >
-          {loading ? <SkeletonChart height={260} /> : (
+          {!showCharts ? <SkeletonChart height={260} /> : (
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={pipelineData} layout="vertical" barCategoryGap="20%">
@@ -636,7 +637,7 @@ export default function Analytics() {
                   <XAxis type="number" stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis type="category" dataKey="status" stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={110} />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148,163,184,0.05)' }} />
-                  <Bar dataKey="count" name="Contracts" radius={[0, 6, 6, 0]} animationDuration={1500}>
+                  <Bar dataKey="count" name="Contracts" radius={[0, 6, 6, 0]} animationBegin={0} animationDuration={1400}>
                     {pipelineData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
@@ -655,7 +656,7 @@ export default function Analytics() {
           iconColor={PALETTE.emerald.main}
           badge="Heatmap"
         >
-          {loading ? <SkeletonChart height={260} /> : (
+          {!showCharts ? <SkeletonChart height={260} /> : (
             <ComplianceHeatmap contracts={contracts} />
           )}
         </ChartPanel>
@@ -672,11 +673,11 @@ export default function Analytics() {
             <div>
               <h4 className="text-sm font-bold text-slate-200">AI Insight</h4>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                {highRisk > 0
-                  ? `${highRisk} contract${highRisk > 1 ? 's' : ''} flagged with critical risk scores above 71%. Focus on liability caps and termination clauses — these represent ${Math.round((highRisk / Math.max(total, 1)) * 100)}% of your portfolio risk exposure.`
-                  : analyzed > 0
-                  ? `All ${analyzed} analyzed contracts are within acceptable risk thresholds. Your portfolio average of ${avgRisk}% indicates strong compliance posture across clause categories.`
-                  : 'Upload and analyze contracts to unlock AI-powered risk insights, clause intelligence, and compliance scoring across your portfolio.'
+                {(highRisk ?? 0) > 0
+                  ? `${highRisk} contract${highRisk > 1 ? 's' : ''} flagged with critical risk scores above 71%. Focus on liability caps and termination clauses — these represent ${Math.round(((highRisk ?? 0) / Math.max(total ?? 1, 1)) * 100)}% of your portfolio risk exposure.`
+                  : (analyzed ?? 0) > 0
+                    ? `All ${analyzed} analyzed contracts are within acceptable risk thresholds. Your portfolio average of ${avgRisk}% indicates strong compliance posture across clause categories.`
+                    : 'Upload and analyze contracts to unlock AI-powered risk insights, clause intelligence, and compliance scoring across your portfolio.'
                 }
               </p>
             </div>

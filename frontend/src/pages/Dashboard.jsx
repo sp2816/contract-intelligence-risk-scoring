@@ -36,9 +36,9 @@ import { useChartReady } from '../components/layout/PageTransition'
 // ─────────────────────────────────────────────────────────────────────────────
 
 const RISK_LEVELS = {
-  low:    { label: 'Low Risk',    min: 0,  max: 30,  color: '#10b981', bg: 'bg-emerald-500', glow: 'shadow-emerald-500/20', icon: ShieldCheck },
-  medium: { label: 'Medium Risk', min: 31, max: 70,  color: '#f59e0b', bg: 'bg-amber-500',   glow: 'shadow-amber-500/20',   icon: Shield },
-  high:   { label: 'High Risk',   min: 71, max: 100, color: '#ef4444', bg: 'bg-red-500',     glow: 'shadow-red-500/20',     icon: ShieldAlert },
+  low: { label: 'Low Risk', min: 0, max: 30, color: '#10b981', bg: 'bg-emerald-500', glow: 'shadow-emerald-500/20', icon: ShieldCheck },
+  medium: { label: 'Medium Risk', min: 31, max: 70, color: '#f59e0b', bg: 'bg-amber-500', glow: 'shadow-amber-500/20', icon: Shield },
+  high: { label: 'High Risk', min: 71, max: 100, color: '#ef4444', bg: 'bg-red-500', glow: 'shadow-red-500/20', icon: ShieldAlert },
 }
 
 const HIGH_RISK_THRESHOLD = 71
@@ -221,9 +221,9 @@ function RiskBreakdownDonut({ contracts }) {
       if (level) counts[level]++
     })
     return [
-      { name: 'Low Risk (0-30)',     value: counts.low,    color: RISK_LEVELS.low.color },
+      { name: 'Low Risk (0-30)', value: counts.low, color: RISK_LEVELS.low.color },
       { name: 'Medium Risk (31-70)', value: counts.medium, color: RISK_LEVELS.medium.color },
-      { name: 'High Risk (71-100)',  value: counts.high,   color: RISK_LEVELS.high.color },
+      { name: 'High Risk (71-100)', value: counts.high, color: RISK_LEVELS.high.color },
     ].filter(d => d.value > 0)
   }, [contracts])
 
@@ -297,11 +297,11 @@ function RiskBreakdownDonut({ contracts }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const RISK_CATEGORIES = [
-  { key: 'liability',     label: 'Liability & Indemnity',   icon: Scale,      color: '#ef4444', gradient: 'from-red-600 to-red-400' },
-  { key: 'termination',   label: 'Termination Clauses',     icon: AlertCircle, color: '#f59e0b', gradient: 'from-amber-600 to-amber-400' },
-  { key: 'ip',            label: 'IP & Ownership',          icon: Lock,       color: '#8b5cf6', gradient: 'from-violet-600 to-violet-400' },
-  { key: 'confidential',  label: 'Confidentiality',         icon: Eye,        color: '#3b82f6', gradient: 'from-blue-600 to-blue-400' },
-  { key: 'compliance',    label: 'Regulatory Compliance',   icon: FileText,   color: '#10b981', gradient: 'from-emerald-600 to-emerald-400' },
+  { key: 'liability', label: 'Liability & Indemnity', icon: Scale, color: '#ef4444', gradient: 'from-red-600 to-red-400' },
+  { key: 'termination', label: 'Termination Clauses', icon: AlertCircle, color: '#f59e0b', gradient: 'from-amber-600 to-amber-400' },
+  { key: 'ip', label: 'IP & Ownership', icon: Lock, color: '#8b5cf6', gradient: 'from-violet-600 to-violet-400' },
+  { key: 'confidential', label: 'Confidentiality', icon: Eye, color: '#3b82f6', gradient: 'from-blue-600 to-blue-400' },
+  { key: 'compliance', label: 'Regulatory Compliance', icon: FileText, color: '#10b981', gradient: 'from-emerald-600 to-emerald-400' },
 ]
 
 function AnimatedBar({ value, maxValue, color, delay = 0 }) {
@@ -575,8 +575,8 @@ function computeRiskTrend(contracts) {
 
   contracts.forEach((c) => {
     if (!c.upload_date) return
-    const d    = new Date(c.upload_date)
-    const key  = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const d = new Date(c.upload_date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const label = d.toLocaleDateString('en-US', { month: 'short' })
 
     if (!map[key]) map[key] = { label, scores: [], count: 0, ts: d.getTime() }
@@ -588,10 +588,10 @@ function computeRiskTrend(contracts) {
     .sort(([, a], [, b]) => a.ts - b.ts)
     .slice(-6)
     .map(([, { label, scores, count }]) => ({
-      month:    label,
-      avgRisk:  scores.length
-                  ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
-                  : null,
+      month: label,
+      avgRisk: scores.length
+        ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
+        : null,
       contracts: count,
     }))
 }
@@ -618,9 +618,9 @@ function TrendTooltip({ active, payload, label }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getRiskStyle(score) {
-  if (score == null)              return 'text-slate-400 bg-slate-700/20'
+  if (score == null) return 'text-slate-400 bg-slate-700/20'
   if (score >= HIGH_RISK_THRESHOLD) return 'text-red-400 bg-red-900/20'
-  if (score >= 31)                return 'text-yellow-400 bg-yellow-900/20'
+  if (score >= 31) return 'text-yellow-400 bg-yellow-900/20'
   return 'text-emerald-400 bg-emerald-900/20'
 }
 
@@ -755,10 +755,10 @@ function timeAgo(iso) {
   if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60_000)
-  if (mins < 1)  return 'Just now'
+  if (mins < 1) return 'Just now'
   if (mins < 60) return `${mins} minute${mins !== 1 ? 's' : ''} ago`
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24)  return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`
+  if (hrs < 24) return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`
   const days = Math.floor(hrs / 24)
   return `${days} day${days !== 1 ? 's' : ''} ago`
 }
@@ -771,11 +771,11 @@ function ActivityTimeline({ recent, loading, error, onRetry }) {
 
   const iconNode = (type) => {
     switch (type) {
-      case 'check':    return <CheckCircle className="h-5 w-5 text-emerald-400" />
-      case 'alert':    return <AlertCircle className="h-5 w-5 text-red-400" />
-      case 'zap':      return <Zap className="h-5 w-5 text-yellow-400" />
+      case 'check': return <CheckCircle className="h-5 w-5 text-emerald-400" />
+      case 'alert': return <AlertCircle className="h-5 w-5 text-red-400" />
+      case 'zap': return <Zap className="h-5 w-5 text-yellow-400" />
       case 'activity': return <Activity className="h-5 w-5 text-blue-400" />
-      default:         return <Activity className="h-5 w-5 text-slate-400" />
+      default: return <Activity className="h-5 w-5 text-slate-400" />
     }
   }
 
@@ -837,21 +837,21 @@ function deriveInsights(stats) {
 
   if (stats.high_risk_count > 0) {
     insights.push({
-      title:       'High Risk Detected',
+      title: 'High Risk Detected',
       description: `${stats.high_risk_count} contract${stats.high_risk_count !== 1 ? 's' : ''} flagged as high risk (score ≥ ${HIGH_RISK_THRESHOLD}%)`,
-      icon:        'alert',
-      severity:    'high',
+      icon: 'alert',
+      severity: 'high',
     })
   }
 
   if (stats.avg_risk_score != null) {
     const severity = stats.avg_risk_score >= HIGH_RISK_THRESHOLD ? 'high'
-                   : stats.avg_risk_score >= 31                  ? 'medium'
-                   : 'low'
+      : stats.avg_risk_score >= 31 ? 'medium'
+        : 'low'
     insights.push({
-      title:       'Portfolio Risk Level',
+      title: 'Portfolio Risk Level',
       description: `Average risk score across analyzed contracts is ${stats.avg_risk_score}%`,
-      icon:        severity === 'low' ? 'check' : severity === 'medium' ? 'zap' : 'alert',
+      icon: severity === 'low' ? 'check' : severity === 'medium' ? 'zap' : 'alert',
       severity,
     })
   }
@@ -861,10 +861,10 @@ function deriveInsights(stats) {
       ? Math.round((stats.analyzed_count / stats.total_contracts) * 100)
       : 0
     insights.push({
-      title:       'Analysis Coverage',
+      title: 'Analysis Coverage',
       description: `${pct}% of contracts (${stats.analyzed_count}/${stats.total_contracts}) have been analyzed`,
-      icon:        pct === 100 ? 'check' : pct > 50 ? 'zap' : 'alert',
-      severity:    pct === 100 ? 'low' : pct > 50 ? 'medium' : 'high',
+      icon: pct === 100 ? 'check' : pct > 50 ? 'zap' : 'alert',
+      severity: pct === 100 ? 'low' : pct > 50 ? 'medium' : 'high',
     })
   }
 
@@ -872,9 +872,9 @@ function deriveInsights(stats) {
 }
 
 const INSIGHT_BORDER = {
-  high:   'border-red-500/30 bg-red-900/10',
+  high: 'border-red-500/30 bg-red-900/10',
   medium: 'border-yellow-500/30 bg-yellow-900/10',
-  low:    'border-emerald-500/30 bg-emerald-900/10',
+  low: 'border-emerald-500/30 bg-emerald-900/10',
 }
 
 const INSIGHT_ICON_COLOR = {
@@ -888,8 +888,8 @@ function AIInsightsPanel({ stats, loading, error, onRetry }) {
     switch (type) {
       case 'alert': return <AlertCircle className="h-5 w-5" />
       case 'check': return <CheckCircle className="h-5 w-5" />
-      case 'zap':   return <Zap className="h-5 w-5" />
-      default:      return <BarChart3 className="h-5 w-5" />
+      case 'zap': return <Zap className="h-5 w-5" />
+      default: return <BarChart3 className="h-5 w-5" />
     }
   }
 
@@ -975,36 +975,36 @@ export default function Dashboard() {
   // KPI metric cards definition
   const metrics = useMemo(() => [
     {
-      id:       'metric-total-contracts',
-      title:    'Total Contracts',
-      value:    stats?.total_contracts ?? '—',
+      id: 'metric-total-contracts',
+      title: 'Total Contracts',
+      value: stats?.total_contracts ?? '—',
       subtitle: 'All uploaded contracts',
-      icon:     BarChart3,
-      color:    'bg-blue-600',
+      icon: BarChart3,
+      color: 'bg-blue-600',
     },
     {
-      id:       'metric-analyzed',
-      title:    'Contracts Analyzed',
-      value:    stats?.analyzed_count ?? '—',
+      id: 'metric-analyzed',
+      title: 'Contracts Analyzed',
+      value: stats?.analyzed_count ?? '—',
       subtitle: 'Successfully analyzed',
-      icon:     CheckCircle,
-      color:    'bg-emerald-600',
+      icon: CheckCircle,
+      color: 'bg-emerald-600',
     },
     {
-      id:       'metric-avg-risk',
-      title:    'Avg Risk Score',
-      value:    stats?.avg_risk_score != null ? `${stats.avg_risk_score}%` : '—',
+      id: 'metric-avg-risk',
+      title: 'Avg Risk Score',
+      value: stats?.avg_risk_score != null ? `${stats.avg_risk_score}%` : '—',
       subtitle: 'Across analyzed contracts',
-      icon:     TrendingUp,
-      color:    'bg-purple-600',
+      icon: TrendingUp,
+      color: 'bg-purple-600',
     },
     {
-      id:       'metric-high-risk',
-      title:    'High Risk Alerts',
-      value:    stats?.high_risk_count ?? '—',
+      id: 'metric-high-risk',
+      title: 'High Risk Alerts',
+      value: stats?.high_risk_count ?? '—',
       subtitle: `Contracts scoring ≥ ${HIGH_RISK_THRESHOLD}%`,
-      icon:     AlertCircle,
-      color:    'bg-red-600',
+      icon: AlertCircle,
+      color: 'bg-red-600',
     },
   ], [stats])
 
@@ -1194,11 +1194,11 @@ export default function Dashboard() {
                 <AreaChart data={riskTrendData}>
                   <defs>
                     <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#f43f5e" stopOpacity={0.3} />
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorContracts" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.2} />
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                   </defs>

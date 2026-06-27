@@ -38,12 +38,12 @@ import { useChartReady } from '../components/layout/PageTransition'
 
 const PALETTE = {
   emerald: { main: '#10b981', light: '#34d399', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-  amber:   { main: '#f59e0b', light: '#fbbf24', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-  rose:    { main: '#f43f5e', light: '#fb7185', bg: 'rgba(244,63,94,0.08)',  border: 'rgba(244,63,94,0.2)'  },
-  blue:    { main: '#3b82f6', light: '#60a5fa', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
-  violet:  { main: '#8b5cf6', light: '#a78bfa', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
-  cyan:    { main: '#06b6d4', light: '#22d3ee', bg: 'rgba(6,182,212,0.08)',  border: 'rgba(6,182,212,0.2)'  },
-  slate:   { main: '#64748b', light: '#94a3b8', bg: 'rgba(100,116,139,0.08)',border: 'rgba(100,116,139,0.2)' },
+  amber: { main: '#f59e0b', light: '#fbbf24', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+  rose: { main: '#f43f5e', light: '#fb7185', bg: 'rgba(244,63,94,0.08)', border: 'rgba(244,63,94,0.2)' },
+  blue: { main: '#3b82f6', light: '#60a5fa', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
+  violet: { main: '#8b5cf6', light: '#a78bfa', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
+  cyan: { main: '#06b6d4', light: '#22d3ee', bg: 'rgba(6,182,212,0.08)', border: 'rgba(6,182,212,0.2)' },
+  slate: { main: '#64748b', light: '#94a3b8', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,9 +59,9 @@ function AnimatedCounter({ value, suffix = '', prefix = '', duration = 1000 }) {
     const startTime = performance.now()
 
     function tick(now) {
-      const elapsed  = now - startTime
+      const elapsed = now - startTime
       const progress = Math.min(elapsed / duration, 1)
-      const eased    = 1 - Math.pow(1 - progress, 4) // easeOutQuart
+      const eased = 1 - Math.pow(1 - progress, 4) // easeOutQuart
       setCount(Math.round(eased * target))
       if (progress < 1) requestAnimationFrame(tick)
     }
@@ -214,12 +214,12 @@ function KPICard({ label, value, suffix = '', trend, trendLabel, icon: Icon, col
 // ─────────────────────────────────────────────────────────────────────────────
 
 const COMPLIANCE_AREAS = [
-  { name: 'Data Privacy',    key: 'privacy'     },
-  { name: 'IP Protection',   key: 'ip'          },
-  { name: 'Liability Caps',  key: 'liability'   },
-  { name: 'Termination',     key: 'termination' },
-  { name: 'Force Majeure',   key: 'force_majeure' },
-  { name: 'Indemnification', key: 'indemnity'   },
+  { name: 'Data Privacy', key: 'privacy' },
+  { name: 'IP Protection', key: 'ip' },
+  { name: 'Liability Caps', key: 'liability' },
+  { name: 'Termination', key: 'termination' },
+  { name: 'Force Majeure', key: 'force_majeure' },
+  { name: 'Indemnification', key: 'indemnity' },
 ]
 
 function ComplianceHeatmap({ contracts }) {
@@ -275,9 +275,9 @@ function ComplianceHeatmap({ contracts }) {
 
 export default function Analytics() {
   // ── Data loading state ─────────────────────────────────────────────────────
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState(null)
-  const [stats,     setStats]     = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [stats, setStats] = useState(null)
   const [contracts, setContracts] = useState([])
 
   // ── Chart gate: true once page-enter transition finishes ───────────────────
@@ -316,19 +316,19 @@ export default function Analytics() {
       else counts.high++
     })
     return [
-      { name: 'Low (0–30)',     value: counts.low,    fill: PALETTE.emerald.main },
-      { name: 'Medium (31–70)', value: counts.medium, fill: PALETTE.amber.main   },
-      { name: 'High (71–100)', value: counts.high,   fill: PALETTE.rose.main    },
+      { name: 'Low (0–30)', value: counts.low, fill: PALETTE.emerald.main },
+      { name: 'Medium (31–70)', value: counts.medium, fill: PALETTE.amber.main },
+      { name: 'High (71–100)', value: counts.high, fill: PALETTE.rose.main },
     ]
   }, [contracts])
 
   const monthlyTrends = useMemo(() => {
     const map = {}
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
     contracts.forEach(c => {
       if (!c.upload_date) return
-      const d   = new Date(c.upload_date)
+      const d = new Date(c.upload_date)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const label = months[d.getMonth()]
 
@@ -345,30 +345,30 @@ export default function Analytics() {
     // Fallback demo data
     if (entries.length < 3) {
       return [
-        { month: 'Jan', uploads: 3,  avgRisk: 38 },
-        { month: 'Feb', uploads: 5,  avgRisk: 45 },
-        { month: 'Mar', uploads: 8,  avgRisk: 52 },
-        { month: 'Apr', uploads: 6,  avgRisk: 41 },
+        { month: 'Jan', uploads: 3, avgRisk: 38 },
+        { month: 'Feb', uploads: 5, avgRisk: 45 },
+        { month: 'Mar', uploads: 8, avgRisk: 52 },
+        { month: 'Apr', uploads: 6, avgRisk: 41 },
         { month: 'May', uploads: 11, avgRisk: 58 },
-        { month: 'Jun', uploads: 9,  avgRisk: 47 },
+        { month: 'Jun', uploads: 9, avgRisk: 47 },
       ]
     }
     return entries
   }, [contracts])
 
   const clauseIntelligence = useMemo(() => [
-    { name: 'Confidentiality', value: 38, color: PALETTE.blue.main   },
-    { name: 'Liability Caps',  value: 27, color: PALETTE.rose.main   },
-    { name: 'Termination',     value: 18, color: PALETTE.amber.main  },
-    { name: 'IP Assignment',   value: 12, color: PALETTE.violet.main },
-    { name: 'Force Majeure',   value: 5,  color: PALETTE.cyan.main   },
+    { name: 'Confidentiality', value: 38, color: PALETTE.blue.main },
+    { name: 'Liability Caps', value: 27, color: PALETTE.rose.main },
+    { name: 'Termination', value: 18, color: PALETTE.amber.main },
+    { name: 'IP Assignment', value: 12, color: PALETTE.violet.main },
+    { name: 'Force Majeure', value: 5, color: PALETTE.cyan.main },
   ], [])
 
   const riskVelocity = useMemo(() => {
     if (monthlyTrends.length < 2) return []
     return monthlyTrends.map((m, i) => ({
-      month:      m.month,
-      velocity:   i === 0 ? 0 : (m.avgRisk || 0) - (monthlyTrends[i - 1].avgRisk || 0),
+      month: m.month,
+      velocity: i === 0 ? 0 : (m.avgRisk || 0) - (monthlyTrends[i - 1].avgRisk || 0),
       cumulative: m.avgRisk || 0,
     }))
   }, [monthlyTrends])
@@ -380,13 +380,13 @@ export default function Analytics() {
       statusMap[status] = (statusMap[status] || 0) + 1
     })
     const statusColors = {
-      uploaded:         PALETTE.blue.main,
-      processing:       PALETTE.amber.main,
-      analyzed:         PALETTE.emerald.main,
-      analysis_complete:PALETTE.emerald.main,
-      completed:        PALETTE.emerald.main,
-      reviewed:         PALETTE.violet.main,
-      approved:         PALETTE.cyan.main,
+      uploaded: PALETTE.blue.main,
+      processing: PALETTE.amber.main,
+      analyzed: PALETTE.emerald.main,
+      analysis_complete: PALETTE.emerald.main,
+      completed: PALETTE.emerald.main,
+      reviewed: PALETTE.violet.main,
+      approved: PALETTE.cyan.main,
     }
     return Object.entries(statusMap).map(([status, count]) => ({
       status: status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' '),
@@ -397,10 +397,10 @@ export default function Analytics() {
 
   // ── KPI Metrics — only derived when loading is complete to prevent flicker ─
   // Using null-guard instead of default 0 so AnimatedCounter starts fresh each time
-  const total    = loading ? null : (stats?.total_contracts ?? 0)
-  const analyzed = loading ? null : (stats?.analyzed_count  ?? 0)
-  const avgRisk  = loading ? null : Math.round(stats?.avg_risk_score ?? 0)
-  const highRisk = loading ? null : (stats?.high_risk_count  ?? 0)
+  const total = loading ? null : (stats?.total_contracts ?? 0)
+  const analyzed = loading ? null : (stats?.analyzed_count ?? 0)
+  const avgRisk = loading ? null : Math.round(stats?.avg_risk_score ?? 0)
+  const highRisk = loading ? null : (stats?.high_risk_count ?? 0)
 
   // ── Error State ────────────────────────────────────────────────────────────
 
@@ -459,10 +459,10 @@ export default function Analytics() {
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <KPICard label="Total Contracts"  value={total}    icon={FileText}    color={PALETTE.blue.main}    trend={12}                      delay={0}   />
-            <KPICard label="Analyzed"         value={analyzed} icon={CheckCircle} color={PALETTE.emerald.main} trend={8}   trendLabel="completion rate" delay={80}  />
-            <KPICard label="Avg Risk Score"   value={avgRisk}  suffix="%" icon={Target}      color={PALETTE.amber.main}   trend={-3}  trendLabel="vs last quarter" delay={160} />
-            <KPICard label="High Risk Flags"  value={highRisk} icon={ShieldAlert} color={PALETTE.rose.main}    trend={highRisk > 0 ? 5 : 0}    delay={240} />
+            <KPICard label="Total Contracts" value={total} icon={FileText} color={PALETTE.blue.main} trend={12} delay={0} />
+            <KPICard label="Analyzed" value={analyzed} icon={CheckCircle} color={PALETTE.emerald.main} trend={8} trendLabel="completion rate" delay={80} />
+            <KPICard label="Avg Risk Score" value={avgRisk} suffix="%" icon={Target} color={PALETTE.amber.main} trend={-3} trendLabel="vs last quarter" delay={160} />
+            <KPICard label="High Risk Flags" value={highRisk} icon={ShieldAlert} color={PALETTE.rose.main} trend={highRisk > 0 ? 5 : 0} delay={240} />
           </>
         )}
       </div>
@@ -571,11 +571,11 @@ export default function Analytics() {
                 <AreaChart data={monthlyTrends}>
                   <defs>
                     <linearGradient id="gradUploads" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor={PALETTE.blue.main} stopOpacity={0.25} />
+                      <stop offset="5%" stopColor={PALETTE.blue.main} stopOpacity={0.25} />
                       <stop offset="95%" stopColor={PALETTE.blue.main} stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gradRisk" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor={PALETTE.rose.main} stopOpacity={0.2} />
+                      <stop offset="5%" stopColor={PALETTE.rose.main} stopOpacity={0.2} />
                       <stop offset="95%" stopColor={PALETTE.rose.main} stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -584,8 +584,8 @@ export default function Analytics() {
                   <YAxis stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }} />
-                  <Area type="monotone" dataKey="uploads"  name="Uploads"     stroke={PALETTE.blue.main} fill="url(#gradUploads)" strokeWidth={2.5} animationBegin={0} animationDuration={1400} />
-                  <Area type="monotone" dataKey="avgRisk"  name="Avg Risk %"  stroke={PALETTE.rose.main} fill="url(#gradRisk)"    strokeWidth={2.5} connectNulls animationBegin={0} animationDuration={1700} />
+                  <Area type="monotone" dataKey="uploads" name="Uploads" stroke={PALETTE.blue.main} fill="url(#gradUploads)" strokeWidth={2.5} animationBegin={0} animationDuration={1400} />
+                  <Area type="monotone" dataKey="avgRisk" name="Avg Risk %" stroke={PALETTE.rose.main} fill="url(#gradRisk)" strokeWidth={2.5} connectNulls animationBegin={0} animationDuration={1700} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -609,8 +609,8 @@ export default function Analytics() {
                   <YAxis stroke="#475569" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }} />
-                  <Line type="monotone" dataKey="velocity"   name="Risk Change (Δ)"   stroke={PALETTE.amber.main}  strokeWidth={2.5} dot={{ fill: PALETTE.amber.main, r: 4, strokeWidth: 2, stroke: '#0f172a' }} activeDot={{ r: 6, strokeWidth: 3 }} animationBegin={0} animationDuration={1400} />
-                  <Line type="monotone" dataKey="cumulative" name="Cumulative Risk %"  stroke={PALETTE.violet.main} strokeWidth={2} strokeDasharray="5 5" dot={false} animationBegin={0} animationDuration={1700} />
+                  <Line type="monotone" dataKey="velocity" name="Risk Change (Δ)" stroke={PALETTE.amber.main} strokeWidth={2.5} dot={{ fill: PALETTE.amber.main, r: 4, strokeWidth: 2, stroke: '#0f172a' }} activeDot={{ r: 6, strokeWidth: 3 }} animationBegin={0} animationDuration={1400} />
+                  <Line type="monotone" dataKey="cumulative" name="Cumulative Risk %" stroke={PALETTE.violet.main} strokeWidth={2} strokeDasharray="5 5" dot={false} animationBegin={0} animationDuration={1700} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

@@ -24,9 +24,8 @@ function AppShell() {
   const isLight = theme === 'light'
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
-      isLight ? 'bg-slate-50 text-slate-800' : 'bg-slate-950 text-slate-100'
-    }`}>
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isLight ? 'bg-slate-50 text-slate-800' : 'bg-slate-950 text-slate-100'
+      }`}>
       <NavigationProgress />
       <Navbar
         onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -40,15 +39,13 @@ function AppShell() {
         <div className="fixed inset-0 z-40 lg:hidden">
           {/* Backdrop */}
           <div
-            className={`fixed inset-0 backdrop-blur-sm transition-opacity duration-300 ${
-              isLight ? 'bg-slate-500/30' : 'bg-slate-950/80'
-            }`}
+            className={`fixed inset-0 backdrop-blur-sm transition-opacity duration-300 ${isLight ? 'bg-slate-500/30' : 'bg-slate-950/80'
+              }`}
             onClick={() => setIsMobileMenuOpen(false)}
           />
           {/* Drawer content */}
-          <aside className={`fixed bottom-0 left-0 top-0 flex w-72 flex-col gap-4 border-r p-6 shadow-2xl transition-transform duration-300 ${
-            isLight ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'
-          }`}>
+          <aside className={`fixed bottom-0 left-0 top-0 flex w-72 flex-col gap-4 border-r p-6 shadow-2xl transition-transform duration-300 ${isLight ? 'border-slate-200 bg-white' : 'border-slate-800 bg-slate-900'
+            }`}>
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <p className={`text-xs uppercase tracking-[0.24em] ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Workspace</p>
@@ -57,9 +54,8 @@ function AppShell() {
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`rounded-full p-2 transition ${
-                  isLight ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
+                className={`rounded-full p-2 transition ${isLight ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
@@ -73,10 +69,9 @@ function AppShell() {
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                      isActive
-                        ? 'bg-brand-500/20 text-brand-500 border border-brand-500/30'
-                        : isLight
+                    `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${isActive
+                      ? 'bg-brand-500/20 text-brand-500 border border-brand-500/30'
+                      : isLight
                         ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
                         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                     }`
@@ -88,9 +83,8 @@ function AppShell() {
               ))}
             </nav>
 
-            <div className={`rounded-3xl border p-5 text-sm backdrop-blur-md ${
-              isLight ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-slate-800 bg-slate-950/50 text-slate-300'
-            }`}>
+            <div className={`rounded-3xl border p-5 text-sm backdrop-blur-md ${isLight ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-slate-800 bg-slate-950/50 text-slate-300'
+              }`}>
               <p className={`font-semibold flex items-center gap-2 ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
                 <ShieldAlert className="h-4 w-4 text-brand-400" /> Platform tools
               </p>
@@ -104,14 +98,12 @@ function AppShell() {
 
       {/* Main Grid Layout */}
       <div
-        className={`mx-auto grid w-full flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 transition-all duration-300 max-w-[1600px] ${
-          isSidebarCollapsed ? 'lg:grid-cols-[80px_minmax(0,1fr)]' : 'lg:grid-cols-[280px_minmax(0,1fr)]'
-        }`}
+        className={`mx-auto grid w-full flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 transition-all duration-300 max-w-[1600px] ${isSidebarCollapsed ? 'lg:grid-cols-[80px_minmax(0,1fr)]' : 'lg:grid-cols-[280px_minmax(0,1fr)]'
+          }`}
       >
         <Sidebar isCollapsed={isSidebarCollapsed} />
-        <main className={`overflow-hidden rounded-[2rem] border p-6 shadow-dark-soft backdrop-blur-md transition-colors duration-300 ${
-          isLight ? 'border-slate-200 bg-white/80' : 'border-slate-800 bg-slate-900/40'
-        }`}>
+        <main className={`overflow-hidden rounded-[2rem] border p-6 shadow-dark-soft backdrop-blur-md transition-colors duration-300 ${isLight ? 'border-slate-200 bg-white/80' : 'border-slate-800 bg-slate-900/40'
+          }`}>
           <PageTransition>
             <Outlet />
           </PageTransition>

@@ -1,5 +1,9 @@
 import time
-from flask import Blueprint, request, Response, stream_with_context
+import json
+from flask import Blueprint, request, Response, stream_with_context, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models.chat import ChatSession, ChatMessage
+from extensions import db
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -129,16 +133,136 @@ Here are some commands or inquiries you can run:
 > **Corporate Disclaimer**: *This chatbot provides AI-driven automated legal contract suggestions based on best practices. It does not constitute formal legal counsel. Please verify critical documents with corporate legal counsel.*"""
 
 
+# ─── Chat Sessions APIs ──────────────────────────────────────────────────
+
+@chat_bp.route('/sessions', methods=['GET'])
+@jwt_required()
+def list_sessions():
+    """List all chat sessions for the current authenticated user"""
+    user_id = get_jwt_identity()
+    search_query = request.args.get('q', '').strip()
+    
+    query = ChatSession.query.filter_by(user_id=user_id)
+    if search_query:
+        # Escape SQL wildcard characters to prevent unintended matches
+        escaped = search_query.replace('%', '\\%').replace('_', '\\_')
+        query = query.filter(ChatSession.session_title.ilike(f"%{escaped}%", escape='\\'))
+        
+    sessions = query.order_by(ChatSession.created_at.desc()).all()
+    return jsonify([s.to_dict() for s in sessions]), 200
+
+
+@chat_bp.route('/sessions/<int:session_id>/messages', methods=['GET'])
+@jwt_required()
+def get_session_messages(session_id):
+    """Retrieve all messages for a specific session"""
+    user_id = get_jwt_identity()
+    session = ChatSession.query.filter_by(id=session_id, user_id=user_id).first()
+    if not session:
+        return jsonify({'message': 'Chat session not found'}), 404
+        
+    # Cap at 200 messages to prevent performance degradation on long conversations
+    messages = ChatMessage.query.filter_by(session_id=session_id)\
+        .order_by(ChatMessage.created_at.asc())\
+        .limit(200)\
+        .all()
+    return jsonify([m.to_dict() for m in messages]), 200
+
+
+@chat_bp.route('/sessions', methods=['POST'])
+@jwt_required()
+def create_session():
+    """Create a new chat session"""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    title = data.get('title', 'New Legal Session').strip()
+    contract_id = data.get('contract_id')
+    
+    session = ChatSession(
+        user_id=user_id,
+        contract_id=contract_id,
+        session_title=title
+    )
+    db.session.add(session)
+    db.session.commit()
+    return jsonify(session.to_dict()), 201
+
+
+@chat_bp.route('/sessions/<int:session_id>', methods=['PUT'])
+@jwt_required()
+def rename_session(session_id):
+    """Rename a chat session title"""
+    user_id = get_jwt_identity()
+    session = ChatSession.query.filter_by(id=session_id, user_id=user_id).first()
+    if not session:
+        return jsonify({'message': 'Chat session not found'}), 404
+        
+    data = request.get_json() or {}
+    title = data.get('title', '').strip()
+    if not title:
+        return jsonify({'message': 'Title cannot be empty'}), 400
+        
+    session.session_title = title
+    db.session.commit()
+    return jsonify(session.to_dict()), 200
+
+
+@chat_bp.route('/sessions/<int:session_id>', methods=['DELETE'])
+@jwt_required()
+def delete_session(session_id):
+    """Delete a session and all its messages"""
+    user_id = get_jwt_identity()
+    session = ChatSession.query.filter_by(id=session_id, user_id=user_id).first()
+    if not session:
+        return jsonify({'message': 'Chat session not found'}), 404
+        
+    db.session.delete(session)
+    db.session.commit()
+    return jsonify({'message': 'Chat session deleted successfully'}), 200
+
+
+# ─── Chat Streaming Endpoint ─────────────────────────────────────────────
+
 @chat_bp.route('/stream', methods=['POST'])
+@jwt_required()
 def chat_stream():
-    data = request.get_json()
-    message = data.get('message', '')
+    """Stream response from mock AI and persist history to database"""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    message = data.get('message', '').strip()
+    session_id = data.get('session_id')
+    contract_id = data.get('contract_id')
     
     if not message:
-        return {'error': 'No message provided'}, 400
+        return jsonify({'error': 'No message provided'}), 400
+    if len(message) > 10000:
+        return jsonify({'error': 'Message exceeds maximum length of 10,000 characters'}), 400
+
+    # Retrieve or create session
+    if session_id:
+        session = ChatSession.query.filter_by(id=session_id, user_id=user_id).first()
+        if not session:
+            return jsonify({'error': 'Chat session not found'}), 404
+    else:
+        title = message[:30] + ('...' if len(message) > 30 else '')
+        session = ChatSession(user_id=user_id, contract_id=contract_id, session_title=title)
+        db.session.add(session)
+        db.session.commit()
+        session_id = session.id
+
+    # Persist User Message
+    user_msg = ChatMessage(session_id=session_id, sender='user', message=message)
+    db.session.add(user_msg)
+    db.session.commit()
 
     def generate():
         response_text = get_mock_ai_response(message)
+        
+        # Persist AI response BEFORE streaming so it's never lost
+        # if the client disconnects mid-stream (BUG-004 fix)
+        ai_msg = ChatMessage(session_id=session_id, sender='assistant', message=response_text)
+        db.session.add(ai_msg)
+        db.session.commit()
         
         # Split into chunks of 3 words to simulate streaming realistically
         chunk_size = 3
@@ -148,13 +272,7 @@ def chat_stream():
             if i + chunk_size < len(words):
                 chunk += ' '
             
-            # SSE format requires data to be prefixed with "data: " and end with double newline
-            # But the chunk itself might contain newlines.
-            # To handle multiline strings cleanly in SSE, we encode the chunk as a JSON string, 
-            # or replace newlines with a placeholder, but easiest is to just send the raw chunk 
-            # and let the frontend append it directly. A standard way is to send a JSON object.
-            import json
-            payload = json.dumps({'content': chunk})
+            payload = json.dumps({'content': chunk, 'session_id': session_id})
             yield f"data: {payload}\n\n"
             time.sleep(0.05)
         

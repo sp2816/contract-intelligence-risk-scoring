@@ -9,6 +9,53 @@ import os
 # Load environment variables
 load_dotenv()
 
+def auto_migrate_schema(app):
+    """
+    Automatically detects missing columns in the SQLite database by comparing
+    them against the SQLAlchemy models, and executes ALTER TABLE statements 
+    to add them at startup. Prevents 'no such column' errors on schema updates.
+    """
+    import sqlite3
+    db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+    if db_uri.startswith('sqlite:///'):
+        db_file = db_uri[len('sqlite:///'):]
+        if os.path.exists(db_file):
+            try:
+                conn = sqlite3.connect(db_file)
+                cursor = conn.cursor()
+                for table_name, table in db.metadata.tables.items():
+                    # Check if table exists
+                    cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
+                    if not cursor.fetchone():
+                        continue
+                    
+                    # Get existing columns
+                    cursor.execute(f"PRAGMA table_info({table_name})")
+                    existing_cols = {row[1] for row in cursor.fetchall()}
+                    
+                    for column in table.columns:
+                        if column.name not in existing_cols:
+                            col_type = str(column.type).upper()
+                            if 'VARCHAR' in col_type or 'CHAR' in col_type:
+                                sql_type = f'VARCHAR({column.type.length or 255})'
+                            elif 'INT' in col_type:
+                                sql_type = 'INTEGER'
+                            elif 'FLOAT' in col_type or 'REAL' in col_type or 'NUMERIC' in col_type:
+                                sql_type = 'REAL'
+                            elif 'BOOL' in col_type:
+                                sql_type = 'BOOLEAN'
+                            elif 'DATETIME' in col_type or 'TIMESTAMP' in col_type:
+                                sql_type = 'TIMESTAMP'
+                            else:
+                                sql_type = 'TEXT'
+                            
+                            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column.name} {sql_type}")
+                            print(f"[AUTO-MIGRATE] Added missing column `{column.name}` to table `{table_name}`")
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"[AUTO-MIGRATE ERROR] Migration failed: {e}")
+
 def create_app():
     app = Flask(__name__)
     
@@ -41,7 +88,9 @@ def create_app():
     with app.app_context():
         from models.user import User  # ensure model is imported before create_all
         from models.contract import Contract  # ensure Contract table is created
+        from models.chat import ChatSession, ChatMessage  # ensure Chat tables are created
         db.create_all()
+        auto_migrate_schema(app)
     
     # Register blueprints
     from routes.auth import auth_bp

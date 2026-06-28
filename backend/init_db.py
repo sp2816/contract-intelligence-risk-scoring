@@ -36,6 +36,8 @@ CREATE TABLE users (
     oauth_id VARCHAR(255) UNIQUE,
     oauth_provider VARCHAR(50),
     is_active BOOLEAN DEFAULT 1,
+    reset_token VARCHAR(255) UNIQUE,
+    reset_token_expiry TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -49,6 +51,7 @@ CREATE TABLE contracts (
     file_path TEXT,
     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) DEFAULT 'uploaded',
+    risk_score REAL,
     total_pages INTEGER,
     extracted_text TEXT,
     contract_summary TEXT
@@ -165,6 +168,18 @@ def seed_database():
     cursor.execute(
         "INSERT INTO users (fullname, email, password_hash, preferences) VALUES (?, ?, ?, ?)",
         ("Test Dev User", "testdev1@gmail.com", testdev_pw, default_prefs)
+    )
+
+    om_pw = generate_password_hash("Om@200634")
+    cursor.execute(
+        "INSERT INTO users (fullname, email, password_hash, preferences) VALUES (?, ?, ?, ?)",
+        ("Om Legal Reviewer", "om2006@gmail.com", om_pw, default_prefs)
+    )
+
+    testdev3_pw = generate_password_hash("SECURE1234!")
+    cursor.execute(
+        "INSERT INTO users (fullname, email, password_hash, preferences) VALUES (?, ?, ?, ?)",
+        ("Test Dev User 3", "testdev3@gmail.com", testdev3_pw, default_prefs)
     )
 
     # 2. Seed Contracts

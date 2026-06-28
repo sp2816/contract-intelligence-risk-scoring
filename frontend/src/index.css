@@ -246,7 +246,7 @@ select {
 [data-theme="light"] .recharts-default-tooltip {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
 }
 
 [data-theme="light"] .recharts-tooltip-label {
@@ -310,7 +310,7 @@ select {
 [data-theme="light"] [class*="shadow-2xl"],
 [data-theme="light"] [class*="shadow-xl"],
 [data-theme="light"] [class*="shadow-lg"] {
-  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.06) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* Radial glow backgrounds on login/register (keep them subtle in light) */
@@ -332,4 +332,30 @@ select {
 
 [data-theme="light"] pre code {
   background-color: transparent !important;
+}
+
+/* ──────────────────────────
+   Navigation Progress Bar
+   ────────────────────────── */
+@keyframes navProgressPulse {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ──────────────────────────
+   Accessibility: reduced motion
+   ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

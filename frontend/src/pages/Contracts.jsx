@@ -9,19 +9,19 @@ import { listContracts, deleteContract, analyzeContract, getContractDetails } fr
 import { useTheme } from '../context/ThemeContext'
 
 // --- Constants & Styles ---
-const HIGH_RISK_THRESHOLD = 60
+const HIGH_RISK_THRESHOLD = 71
 
 function getRiskLevel(score) {
   if (score == null) return 'pending'
   if (score >= HIGH_RISK_THRESHOLD) return 'high'
-  if (score >= 40) return 'medium'
+  if (score >= 31) return 'medium'
   return 'low'
 }
 
 function getRiskStyle(score) {
   if (score == null) return 'text-slate-400 bg-slate-700/20 border-slate-700/30'
   if (score >= HIGH_RISK_THRESHOLD) return 'text-rose-450 bg-rose-950/20 border-rose-900/30'
-  if (score >= 40) return 'text-amber-450 bg-amber-950/20 border-amber-900/30'
+  if (score >= 31) return 'text-amber-450 bg-amber-950/20 border-amber-900/30'
   return 'text-emerald-450 bg-emerald-950/20 border-emerald-900/30'
 }
 
@@ -81,7 +81,7 @@ export default function Contracts() {
 
   // Actions states
   const [analyzingId, setAnalyzingId] = useState(null)
-  
+
   // Delete modal
   const [deletingContract, setDeletingContract] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -271,10 +271,10 @@ export default function Contracts() {
 
   return (
     <div className="relative flex flex-col gap-6 w-full min-h-[500px]">
-      
+
       {/* Drawer Overlay Backdrop */}
       {selectedContractId && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden"
           onClick={handleCloseView}
         />
@@ -298,9 +298,8 @@ export default function Contracts() {
       </div>
 
       {/* Filter and Search Bar Card */}
-      <div className={`rounded-3xl border p-5 shadow-dark-soft backdrop-blur-md transition duration-300 flex flex-col gap-4 ${
-        isLight ? 'border-slate-200 bg-white/60' : 'border-slate-800 bg-slate-900/35'
-      }`}>
+      <div className={`rounded-3xl border p-5 shadow-dark-soft backdrop-blur-md transition duration-300 flex flex-col gap-4 ${isLight ? 'border-slate-200 bg-white/60' : 'border-slate-800 bg-slate-900/35'
+        }`}>
         <div className="grid gap-4 md:grid-cols-12">
           {/* Search bar */}
           <div className="relative md:col-span-6">
@@ -310,11 +309,10 @@ export default function Contracts() {
               placeholder="Search contracts by name..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className={`w-full rounded-2xl border py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-brand-500/50 ${
-                isLight 
-                  ? 'border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-400' 
+              className={`w-full rounded-2xl border py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-brand-500/50 ${isLight
+                  ? 'border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-400'
                   : 'border-slate-800 bg-slate-950/60 text-slate-200 placeholder:text-slate-500'
-              }`}
+                }`}
             />
           </div>
 
@@ -324,11 +322,10 @@ export default function Contracts() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className={`w-full rounded-2xl border px-3 py-2.5 text-xs outline-none transition cursor-pointer ${
-                isLight 
-                  ? 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100' 
+              className={`w-full rounded-2xl border px-3 py-2.5 text-xs outline-none transition cursor-pointer ${isLight
+                  ? 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'
                   : 'border-slate-800 bg-slate-950/65 text-slate-200 hover:bg-slate-900/70'
-              }`}
+                }`}
             >
               <option value="all">All Statuses</option>
               <option value="uploaded">Uploaded / Pending</option>
@@ -343,11 +340,10 @@ export default function Contracts() {
             <select
               value={riskFilter}
               onChange={(e) => { setRiskFilter(e.target.value); setCurrentPage(1); }}
-              className={`w-full rounded-2xl border px-3 py-2.5 text-xs outline-none transition cursor-pointer ${
-                isLight 
-                  ? 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100' 
+              className={`w-full rounded-2xl border px-3 py-2.5 text-xs outline-none transition cursor-pointer ${isLight
+                  ? 'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100'
                   : 'border-slate-800 bg-slate-950/65 text-slate-200 hover:bg-slate-900/70'
-              }`}
+                }`}
             >
               <option value="all">All Risk Scores</option>
               <option value="high">High Risk (≥60%)</option>
@@ -360,20 +356,18 @@ export default function Contracts() {
       </div>
 
       {/* Main Listing Table */}
-      <div className={`rounded-3xl border overflow-hidden shadow-dark-soft backdrop-blur-md transition duration-300 ${
-        isLight ? 'border-slate-200 bg-white/70' : 'border-slate-800 bg-slate-900/20'
-      }`}>
+      <div className={`rounded-3xl border overflow-hidden shadow-dark-soft backdrop-blur-md transition duration-300 ${isLight ? 'border-slate-200 bg-white/70' : 'border-slate-800 bg-slate-900/20'
+        }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className={`border-b ${isLight ? 'border-slate-200 bg-slate-50' : 'border-slate-800/80 bg-slate-950/40'}`}>
-                
+
                 {/* Column Headers with Sort Actions */}
-                <th 
-                  onClick={() => handleSort('name')} 
-                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${
-                    sortField === 'name' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
-                  }`}
+                <th
+                  onClick={() => handleSort('name')}
+                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${sortField === 'name' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
+                    }`}
                 >
                   <div className="flex items-center gap-1.5">
                     Contract Name
@@ -381,11 +375,10 @@ export default function Contracts() {
                   </div>
                 </th>
 
-                <th 
-                  onClick={() => handleSort('upload_date')} 
-                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${
-                    sortField === 'upload_date' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
-                  }`}
+                <th
+                  onClick={() => handleSort('upload_date')}
+                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${sortField === 'upload_date' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
+                    }`}
                 >
                   <div className="flex items-center gap-1.5">
                     Upload Date
@@ -393,11 +386,10 @@ export default function Contracts() {
                   </div>
                 </th>
 
-                <th 
-                  onClick={() => handleSort('risk_score')} 
-                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${
-                    sortField === 'risk_score' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
-                  }`}
+                <th
+                  onClick={() => handleSort('risk_score')}
+                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${sortField === 'risk_score' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
+                    }`}
                 >
                   <div className="flex items-center gap-1.5">
                     Risk Score
@@ -405,11 +397,10 @@ export default function Contracts() {
                   </div>
                 </th>
 
-                <th 
-                  onClick={() => handleSort('status')} 
-                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${
-                    sortField === 'status' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
-                  }`}
+                <th
+                  onClick={() => handleSort('status')}
+                  className={`px-6 py-4 text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none hover:text-white ${sortField === 'status' ? 'text-brand-400' : (isLight ? 'text-slate-500' : 'text-slate-400')
+                    }`}
                 >
                   <div className="flex items-center gap-1.5">
                     Status
@@ -440,14 +431,13 @@ export default function Contracts() {
                 </tr>
               ) : (
                 paginatedContracts.map((contract) => (
-                  <tr 
+                  <tr
                     key={contract.id}
                     onClick={() => handleOpenView(contract.id)}
-                    className={`cursor-pointer transition-colors border-b border-slate-850/20 ${
-                      selectedContractId === contract.id
+                    className={`cursor-pointer transition-colors border-b border-slate-850/20 ${selectedContractId === contract.id
                         ? (isLight ? 'bg-brand-50/40' : 'bg-brand-500/10')
                         : (isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-900/40')
-                    }`}
+                      }`}
                   >
                     {/* Contract Name */}
                     <td className="px-6 py-4.5 text-sm font-medium text-white max-w-[280px] truncate" title={contract.original_filename}>
@@ -486,9 +476,8 @@ export default function Contracts() {
                           type="button"
                           onClick={() => handleOpenView(contract.id)}
                           title="View contract summary & details"
-                          className={`p-2 rounded-xl transition ${
-                            isLight ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                          }`}
+                          className={`p-2 rounded-xl transition ${isLight ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                            }`}
                         >
                           <Eye className="h-4.5 w-4.5" />
                         </button>
@@ -499,11 +488,10 @@ export default function Contracts() {
                           disabled={analyzingId != null || ['analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'].includes(contract.status?.toLowerCase())}
                           onClick={(e) => handleAnalyze(e, contract.id)}
                           title={['analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'].includes(contract.status?.toLowerCase()) ? 'Analysis Complete' : 'Run Risk Analysis'}
-                          className={`p-2 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                            ['analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'].includes(contract.status?.toLowerCase())
+                          className={`p-2 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed ${['analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'].includes(contract.status?.toLowerCase())
                               ? 'text-emerald-500'
                               : (isLight ? 'text-brand-500 hover:bg-slate-100 hover:text-brand-700' : 'text-brand-400 hover:bg-slate-800 hover:text-brand-300')
-                          }`}
+                            }`}
                         >
                           {analyzingId === contract.id ? (
                             <Loader2 className="h-4.5 w-4.5 animate-spin" />
@@ -519,9 +507,8 @@ export default function Contracts() {
                           type="button"
                           onClick={() => setDeletingContract(contract)}
                           title="Delete contract"
-                          className={`p-2 rounded-xl transition ${
-                            isLight ? 'text-slate-400 hover:bg-slate-100 hover:text-red-600' : 'text-slate-500 hover:bg-slate-800 hover:text-red-400'
-                          }`}
+                          className={`p-2 rounded-xl transition ${isLight ? 'text-slate-400 hover:bg-slate-100 hover:text-red-600' : 'text-slate-500 hover:bg-slate-800 hover:text-red-400'
+                            }`}
                         >
                           <Trash2 className="h-4.5 w-4.5" />
                         </button>
@@ -536,9 +523,8 @@ export default function Contracts() {
 
         {/* Pagination bar */}
         {!loading && !error && totalCount > 0 && (
-          <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t ${
-            isLight ? 'border-slate-200 bg-slate-50' : 'border-slate-800/80 bg-slate-950/20'
-          }`}>
+          <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t ${isLight ? 'border-slate-200 bg-slate-50' : 'border-slate-800/80 bg-slate-950/20'
+            }`}>
             <div className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               Showing <span className="font-semibold text-white">{Math.min(totalCount, (currentPage - 1) * pageSize + 1)}</span> to{' '}
               <span className="font-semibold text-white">{Math.min(totalCount, currentPage * pageSize)}</span> of{' '}
@@ -552,9 +538,8 @@ export default function Contracts() {
                 <select
                   value={pageSize}
                   onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                  className={`rounded-xl border px-2 py-1 text-xs outline-none cursor-pointer transition ${
-                    isLight ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-800 bg-slate-900 text-slate-300'
-                  }`}
+                  className={`rounded-xl border px-2 py-1 text-xs outline-none cursor-pointer transition ${isLight ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-800 bg-slate-900 text-slate-300'
+                    }`}
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
@@ -568,11 +553,10 @@ export default function Contracts() {
                   type="button"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  className={`p-1.5 rounded-xl border transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                    isLight 
-                      ? 'border-slate-200 text-slate-650 hover:bg-slate-100' 
+                  className={`p-1.5 rounded-xl border transition disabled:opacity-40 disabled:cursor-not-allowed ${isLight
+                      ? 'border-slate-200 text-slate-650 hover:bg-slate-100'
                       : 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white'
-                  }`}
+                    }`}
                   aria-label="Previous Page"
                 >
                   <ChevronLeft className="h-4.5 w-4.5" />
@@ -584,11 +568,10 @@ export default function Contracts() {
                   type="button"
                   disabled={currentPage === totalPages || totalPages === 0}
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  className={`p-1.5 rounded-xl border transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                    isLight 
-                      ? 'border-slate-200 text-slate-650 hover:bg-slate-100' 
+                  className={`p-1.5 rounded-xl border transition disabled:opacity-40 disabled:cursor-not-allowed ${isLight
+                      ? 'border-slate-200 text-slate-650 hover:bg-slate-100'
                       : 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white'
-                  }`}
+                    }`}
                   aria-label="Next Page"
                 >
                   <ChevronRight className="h-4.5 w-4.5" />
@@ -602,12 +585,11 @@ export default function Contracts() {
       {/* Delete Confirmation Modal */}
       {deletingContract && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-          <div className={`w-full max-w-md rounded-3xl border p-6 shadow-2xl transition duration-300 animate-slide-up ${
-            isLight ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-800 bg-slate-900 text-slate-200'
-          }`}>
+          <div className={`w-full max-w-md rounded-3xl border p-6 shadow-2xl transition duration-300 animate-slide-up ${isLight ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-800 bg-slate-900 text-slate-200'
+            }`}>
             <h3 className="text-lg font-bold text-white mb-2">Delete Contract?</h3>
             <p className={`text-sm ${isLight ? 'text-slate-600' : 'text-slate-400'} leading-relaxed`}>
-              Are you sure you want to permanently delete <span className="font-semibold text-white">"{deletingContract.original_filename || deletingContract.filename}"</span>? 
+              Are you sure you want to permanently delete <span className="font-semibold text-white">"{deletingContract.original_filename || deletingContract.filename}"</span>?
               This action will delete all extracted clauses, NER entities, chat history, and the source file. It cannot be undone.
             </p>
             <div className="flex gap-3 mt-6 justify-end">
@@ -615,11 +597,10 @@ export default function Contracts() {
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setDeletingContract(null)}
-                className={`rounded-xl border px-4 py-2.5 text-xs font-semibold transition ${
-                  isLight 
-                    ? 'border-slate-200 text-slate-500 hover:bg-slate-100' 
+                className={`rounded-xl border px-4 py-2.5 text-xs font-semibold transition ${isLight
+                    ? 'border-slate-200 text-slate-500 hover:bg-slate-100'
                     : 'border-slate-700 text-slate-450 hover:bg-slate-850 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 Cancel
               </button>
@@ -643,12 +624,10 @@ export default function Contracts() {
       )}
 
       {/* View Slide-out Drawer / Side Panel */}
-      <div 
-        className={`fixed top-0 right-0 bottom-0 z-50 w-full md:w-[480px] border-l shadow-2xl p-6 overflow-y-auto transition-transform duration-350 ease-out transform ${
-          selectedContractId ? 'translate-x-0' : 'translate-x-full'
-        } ${
-          isLight ? 'border-slate-200 bg-white/95 backdrop-blur-md' : 'border-slate-850 bg-slate-950/95 backdrop-blur-md'
-        }`}
+      <div
+        className={`fixed top-0 right-0 bottom-0 z-50 w-full md:w-[480px] border-l shadow-2xl p-6 overflow-y-auto transition-transform duration-350 ease-out transform ${selectedContractId ? 'translate-x-0' : 'translate-x-full'
+          } ${isLight ? 'border-slate-200 bg-white/95 backdrop-blur-md' : 'border-slate-850 bg-slate-950/95 backdrop-blur-md'
+          }`}
       >
         <div className="flex items-center justify-between border-b border-slate-850/60 pb-4 mb-6">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -658,9 +637,8 @@ export default function Contracts() {
           <button
             type="button"
             onClick={handleCloseView}
-            className={`p-2 rounded-xl transition ${
-              isLight ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-900 hover:text-white'
-            }`}
+            className={`p-2 rounded-xl transition ${isLight ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-900 hover:text-white'
+              }`}
             aria-label="Close details panel"
           >
             <X className="h-5 w-5" />
@@ -680,9 +658,8 @@ export default function Contracts() {
         ) : detailData ? (
           <div className="space-y-6 animate-fade-in">
             {/* Document Metadata Panel */}
-            <div className={`rounded-2xl border p-4 space-y-3.5 ${
-              isLight ? 'border-slate-200 bg-slate-50/50' : 'border-slate-850 bg-slate-900/10'
-            }`}>
+            <div className={`rounded-2xl border p-4 space-y-3.5 ${isLight ? 'border-slate-200 bg-slate-50/50' : 'border-slate-850 bg-slate-900/10'
+              }`}>
               <div className="space-y-1">
                 <span className={`text-[10px] font-bold uppercase tracking-wider block ${isLight ? 'text-slate-500' : 'text-slate-550'}`}>Document Filename</span>
                 <span className="text-sm font-semibold text-white break-all leading-snug">
@@ -758,9 +735,8 @@ export default function Contracts() {
                   {detailData.contract.contract_summary}
                 </p>
               ) : (
-                <div className={`rounded-xl border p-4 text-center text-xs ${
-                  isLight ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-900 bg-slate-950/20 text-slate-450'
-                }`}>
+                <div className={`rounded-xl border p-4 text-center text-xs ${isLight ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-900 bg-slate-950/20 text-slate-450'
+                  }`}>
                   {detailData.contract.status?.toLowerCase() === 'uploaded' ? (
                     <span>Contract is uploaded. Click "Analyze" to extract summary and clauses.</span>
                   ) : (
@@ -778,9 +754,8 @@ export default function Contracts() {
                 </h3>
                 <div className="grid gap-2 grid-cols-2">
                   {detailData.entities.map((ent) => (
-                    <div key={ent.id} className={`rounded-xl border p-3 ${
-                      isLight ? 'border-slate-200 bg-slate-50/40 text-slate-700' : 'border-slate-850 bg-slate-900/10 text-slate-300'
-                    }`}>
+                    <div key={ent.id} className={`rounded-xl border p-3 ${isLight ? 'border-slate-200 bg-slate-50/40 text-slate-700' : 'border-slate-850 bg-slate-900/10 text-slate-300'
+                      }`}>
                       <span className="text-[9px] uppercase font-bold text-slate-500 block tracking-wider">{ent.entity_type}</span>
                       <span className="text-xs font-semibold text-white truncate block mt-0.5" title={ent.entity_value}>{ent.entity_value}</span>
                     </div>
@@ -799,18 +774,16 @@ export default function Contracts() {
                   {detailData.clauses.map((clause) => {
                     const rLevel = clause.risk_level?.toLowerCase()
                     return (
-                      <div key={clause.id} className={`rounded-xl border p-3 space-y-1.5 transition ${
-                        isLight ? 'border-slate-200 bg-slate-50/40' : 'border-slate-850 bg-slate-900/10'
-                      }`}>
+                      <div key={clause.id} className={`rounded-xl border p-3 space-y-1.5 transition ${isLight ? 'border-slate-200 bg-slate-50/40' : 'border-slate-850 bg-slate-900/10'
+                        }`}>
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold text-slate-200">{clause.clause_type}</span>
-                          <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
-                            rLevel === 'high' 
-                              ? 'text-rose-400 bg-rose-950/40 border border-rose-900/40' 
+                          <span className={`inline-flex rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${rLevel === 'high'
+                              ? 'text-rose-400 bg-rose-950/40 border border-rose-900/40'
                               : rLevel === 'medium'
-                              ? 'text-amber-400 bg-amber-950/40 border border-amber-900/40'
-                              : 'text-emerald-400 bg-emerald-950/40 border border-emerald-900/40'
-                          }`}>
+                                ? 'text-amber-400 bg-amber-950/40 border border-amber-900/40'
+                                : 'text-emerald-400 bg-emerald-950/40 border border-emerald-900/40'
+                            }`}>
                             {clause.risk_level}
                           </span>
                         </div>

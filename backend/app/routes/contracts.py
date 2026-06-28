@@ -118,7 +118,8 @@ def list_contracts():
 _ANALYZED_STATUSES = {'analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'}
 
 # risk_score >= this threshold → "High Risk"
-HIGH_RISK_THRESHOLD = 60.0
+HIGH_RISK_THRESHOLD = 71.0
+
 
 
 @contracts_bp.route('/stats', methods=['GET'])

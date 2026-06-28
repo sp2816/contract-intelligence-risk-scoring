@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { 
   Upload, File, ShieldAlert, CheckCircle, AlertTriangle, 
   HelpCircle, ChevronRight, RefreshCw, Layers, ArrowRight,
-  Filter, Info, Eye, Download, FileCheck, XCircle
+  Filter, Info, Eye, Download, FileCheck, XCircle, Printer
 } from 'lucide-react'
 import { uploadContract, getContractDetails, analyzeContract } from '../api/contracts.js'
 import { validateContractFile } from '../utils/validators.js'
@@ -123,7 +123,7 @@ const buildReportData = (data) => {
   }))
 
   const missing = []
-  if (contract.risk_score >= 60) {
+  if (contract.risk_score >= 71) {
     missing.push({
       name: 'Data Protection Addendum (DPA)',
       importance: 'CRITICAL',
@@ -155,7 +155,7 @@ const buildReportData = (data) => {
     effectiveDate: dateVal,
     governingLaw: lawVal,
     riskScore: contract.risk_score || 0,
-    riskLabel: contract.risk_score >= 60 ? 'HIGH RISK' : (contract.risk_score >= 40 ? 'MEDIUM RISK' : 'LOW RISK'),
+    riskLabel: contract.risk_score >= 71 ? 'HIGH RISK' : (contract.risk_score >= 31 ? 'MEDIUM RISK' : 'LOW RISK'),
     riskSummary: contract.contract_summary || 'Analysis complete.',
     clauses: mappedClauses,
     missingClauses: missing,
@@ -363,6 +363,296 @@ export default function ContractAnalysis() {
     setCurrentStepIndex(0)
     setUploadError('')
     setUploadedContract(null)
+  }
+
+  // ─── Generate shared PDF/Print styles ──────────────────────────────────────
+  const generatePrintStyles = () => `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; background: #fff; padding: 40px; line-height: 1.6; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #0f172a; padding-bottom: 20px; margin-bottom: 30px; }
+    .header-left h1 { font-size: 22px; font-weight: 800; color: #0f172a; }
+    .header-left p { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+    .header-right { text-align: right; font-size: 11px; color: #64748b; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    .meta-card { padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
+    .meta-card .label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; }
+    .meta-card .value { font-size: 13px; font-weight: 600; color: #1e293b; margin-top: 4px; }
+    .risk-banner { display: flex; align-items: center; gap: 20px; padding: 18px 24px; border-radius: 12px; margin-bottom: 28px; }
+    .risk-banner.high { background: #fff1f2; border: 1px solid #fecdd3; }
+    .risk-banner.medium { background: #fffbeb; border: 1px solid #fde68a; }
+    .risk-banner.low { background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .risk-score { font-size: 36px; font-weight: 800; }
+    .risk-score.high { color: #e11d48; }
+    .risk-score.medium { color: #d97706; }
+    .risk-score.low { color: #059669; }
+    .risk-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+    .risk-label.high { color: #be123c; }
+    .risk-label.medium { color: #b45309; }
+    .risk-label.low { color: #047857; }
+    .risk-summary { font-size: 12px; color: #475569; line-height: 1.7; flex: 1; }
+    .section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 8px; }
+    .section-title .icon { width: 20px; height: 20px; }
+    .clause-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px; page-break-inside: avoid; }
+    .clause-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; }
+    .clause-name { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .clause-category { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; font-weight: 600; margin-top: 2px; }
+    .risk-badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .risk-badge.high { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
+    .risk-badge.medium { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+    .risk-badge.low { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .original-text { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #475569; font-style: italic; line-height: 1.7; margin: 10px 0; }
+    .analysis-text { font-size: 12px; color: #334155; line-height: 1.7; margin: 8px 0; }
+    .redline-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; padding: 12px 14px; margin-top: 12px; }
+    .redline-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #2563eb; }
+    .redline-text { font-size: 12px; color: #1e40af; line-height: 1.7; margin-top: 4px; font-weight: 500; }
+    .missing-card { border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin-bottom: 12px; background: #fffbeb; page-break-inside: avoid; }
+    .missing-name { font-size: 14px; font-weight: 700; color: #92400e; }
+    .missing-importance { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; text-transform: uppercase; letter-spacing: 1px; }
+    .missing-reason { font-size: 12px; color: #78350f; line-height: 1.7; margin: 8px 0; }
+    .template-box { background: #0f172a; color: #7dd3fc; border-radius: 8px; padding: 12px 14px; font-size: 11px; font-family: 'Courier New', monospace; line-height: 1.7; margin-top: 8px; }
+    .checklist-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px; background: #f8fafc; }
+    .checklist-num { min-width: 24px; height: 24px; border-radius: 6px; background: #ecfdf5; color: #059669; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 1px solid #a7f3d0; }
+    .checklist-text { font-size: 12px; color: #334155; line-height: 1.6; font-weight: 500; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 2px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
+    @media print {
+      body { padding: 20px; }
+      .clause-card, .missing-card, .checklist-item { page-break-inside: avoid; }
+      .section-title { page-break-after: avoid; }
+    }
+  `
+
+  // ─── Export Redlines PDF ────────────────────────────────────────────────────
+  const handleExportPDF = () => {
+    const report = analysisReport
+    if (!report) return
+
+    const riskLevel = report.riskScore >= 66 ? 'high' : (report.riskScore >= 36 ? 'medium' : 'low')
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    const fileName = uploadedContract?.original_filename || report.fileName
+
+    const clausesHTML = (report.clauses || []).map(clause => {
+      const level = clause.riskLevel || 'low'
+      return `
+        <div class="clause-card">
+          <div class="clause-header">
+            <div>
+              <div class="clause-name">${clause.name}</div>
+              <div class="clause-category">${clause.category}</div>
+            </div>
+            <span class="risk-badge ${level}">${level} risk &bull; ${clause.riskScore}%</span>
+          </div>
+          <div style="margin-bottom: 6px;"><strong style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">Original Clause Text</strong></div>
+          <div class="original-text">${clause.originalText}</div>
+          <div style="margin-top: 10px;"><strong style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">AI Vulnerability Analysis</strong></div>
+          <div class="analysis-text">${clause.analysis}</div>
+          <div class="redline-box">
+            <div class="redline-label">&starf; Redline Recommendation</div>
+            <div class="redline-text">${clause.recommendation}</div>
+          </div>
+        </div>
+      `
+    }).join('')
+
+    const missingHTML = (report.missingClauses || []).map(item => `
+      <div class="missing-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span class="missing-name">${item.name}</span>
+          <span class="missing-importance">${item.importance}</span>
+        </div>
+        <div class="missing-reason">${item.reason}</div>
+        <div style="margin-top:6px;"><strong style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">Suggested Template</strong></div>
+        <div class="template-box">${item.template}</div>
+      </div>
+    `).join('')
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Redline Report — ${fileName}</title>
+        <style>${generatePrintStyles()}</style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="header-left">
+            <h1>&#9878; Contract Redline Report</h1>
+            <p>AI-Powered Clause Analysis &amp; Recommendations</p>
+          </div>
+          <div class="header-right">
+            <div style="font-weight:700;color:#0f172a;">${fileName}</div>
+            <div>Generated: ${dateStr} at ${timeStr}</div>
+            <div>LexAI Contract Intelligence Platform</div>
+          </div>
+        </div>
+
+        <div class="risk-banner ${riskLevel}">
+          <div>
+            <div class="risk-score ${riskLevel}">${report.riskScore}%</div>
+            <div class="risk-label ${riskLevel}">${report.riskLabel}</div>
+          </div>
+          <div class="risk-summary">${report.riskSummary}</div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-card"><div class="label">Agreement Type</div><div class="value">${report.agreementType}</div></div>
+          <div class="meta-card"><div class="label">Contracting Entities</div><div class="value">${report.parties}</div></div>
+          <div class="meta-card"><div class="label">Governing Law &amp; Date</div><div class="value">${report.governingLaw} (${report.effectiveDate})</div></div>
+        </div>
+
+        <div class="section-title">&#128270; Extracted Clause Analysis &amp; Redlines (${(report.clauses || []).length} clauses)</div>
+        ${clausesHTML}
+
+        ${(report.missingClauses || []).length > 0 ? `
+          <div class="section-title">&#9888; Omitted / Missing Clauses</div>
+          ${missingHTML}
+        ` : ''}
+
+        <div class="footer">
+          <p>This redline report was generated by LexAI Contract Intelligence Platform. For legal compliance, always consult with qualified counsel.</p>
+          <p style="margin-top:4px;">&copy; ${now.getFullYear()} LexAI &mdash; Confidential</p>
+        </div>
+      </body>
+      </html>
+    `
+
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(html)
+      printWindow.document.close()
+      // Wait for fonts to load before triggering print
+      setTimeout(() => {
+        printWindow.focus()
+        printWindow.print()
+      }, 600)
+    }
+  }
+
+  // ─── Print Full Analysis Report ────────────────────────────────────────────
+  const handlePrintReport = () => {
+    const report = analysisReport
+    if (!report) return
+
+    const riskLevel = report.riskScore >= 66 ? 'high' : (report.riskScore >= 36 ? 'medium' : 'low')
+    const now = new Date()
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    const fileName = uploadedContract?.original_filename || report.fileName
+
+    const clausesHTML = (report.clauses || []).map(clause => {
+      const level = clause.riskLevel || 'low'
+      return `
+        <div class="clause-card">
+          <div class="clause-header">
+            <div>
+              <div class="clause-name">${clause.name}</div>
+              <div class="clause-category">${clause.category}</div>
+            </div>
+            <span class="risk-badge ${level}">${level} risk &bull; ${clause.riskScore}%</span>
+          </div>
+          <div style="margin-bottom:6px;"><strong style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">Original Clause Text</strong></div>
+          <div class="original-text">${clause.originalText}</div>
+          <div style="margin-top:10px;"><strong style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">AI Analysis</strong></div>
+          <div class="analysis-text">${clause.analysis}</div>
+          <div class="redline-box">
+            <div class="redline-label">&starf; Recommendation</div>
+            <div class="redline-text">${clause.recommendation}</div>
+          </div>
+        </div>
+      `
+    }).join('')
+
+    const missingHTML = (report.missingClauses || []).map(item => `
+      <div class="missing-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span class="missing-name">${item.name}</span>
+          <span class="missing-importance">${item.importance}</span>
+        </div>
+        <div class="missing-reason">${item.reason}</div>
+        <div style="margin-top:6px;"><strong style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">Suggested Template</strong></div>
+        <div class="template-box">${item.template}</div>
+      </div>
+    `).join('')
+
+    const checklistHTML = (report.recommendations || []).map((rec, idx) => `
+      <div class="checklist-item">
+        <div class="checklist-num">${idx + 1}</div>
+        <div class="checklist-text">${rec}</div>
+      </div>
+    `).join('')
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Full Analysis Report — ${fileName}</title>
+        <style>${generatePrintStyles()}</style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="header-left">
+            <h1>&#9878; Full Contract Analysis Report</h1>
+            <p>Comprehensive AI Risk Assessment &amp; Compliance Audit</p>
+          </div>
+          <div class="header-right">
+            <div style="font-weight:700;color:#0f172a;">${fileName}</div>
+            <div>Generated: ${dateStr} at ${timeStr}</div>
+            <div>LexAI Contract Intelligence Platform</div>
+          </div>
+        </div>
+
+        <div class="risk-banner ${riskLevel}">
+          <div>
+            <div class="risk-score ${riskLevel}">${report.riskScore}%</div>
+            <div class="risk-label ${riskLevel}">${report.riskLabel}</div>
+          </div>
+          <div class="risk-summary">
+            <strong>Executive Summary</strong><br/>
+            ${report.riskSummary}
+          </div>
+        </div>
+
+        <div class="section-title">&#128196; Contract Metadata</div>
+        <div class="meta-grid">
+          <div class="meta-card"><div class="label">Agreement Type</div><div class="value">${report.agreementType}</div></div>
+          <div class="meta-card"><div class="label">Contracting Entities</div><div class="value">${report.parties}</div></div>
+          <div class="meta-card"><div class="label">Governing Law &amp; Date</div><div class="value">${report.governingLaw} (${report.effectiveDate})</div></div>
+        </div>
+
+        <div class="section-title">&#128270; Extracted Clause Analysis (${(report.clauses || []).length} clauses)</div>
+        ${clausesHTML}
+
+        ${(report.missingClauses || []).length > 0 ? `
+          <div class="section-title">&#9888; Omitted / Missing Clauses</div>
+          ${missingHTML}
+        ` : ''}
+
+        ${(report.recommendations || []).length > 0 ? `
+          <div class="section-title">&#9989; Priority Action Checklist</div>
+          ${checklistHTML}
+        ` : ''}
+
+        <div class="footer">
+          <p>This report was generated by LexAI Contract Intelligence Platform. All analyses are AI-assisted and should be reviewed by qualified legal counsel.</p>
+          <p style="margin-top:4px;">&copy; ${now.getFullYear()} LexAI &mdash; Confidential Document</p>
+        </div>
+      </body>
+      </html>
+    `
+
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(html)
+      printWindow.document.close()
+      setTimeout(() => {
+        printWindow.focus()
+        printWindow.print()
+      }, 600)
+    }
   }
 
   // Filtered Key Clauses
@@ -803,16 +1093,18 @@ export default function ContractAnalysis() {
               <div className="flex gap-3 pt-4 border-t border-slate-850">
                 <button
                   type="button"
+                  onClick={handleExportPDF}
                   className="flex-1 rounded-xl bg-brand-500 hover:bg-brand-700 py-2.5 text-xs font-semibold text-white shadow transition flex items-center justify-center gap-2"
                 >
                   <Download className="h-3.5 w-3.5" /> Export Redlines PDF
                 </button>
                 <button
                   type="button"
-                  className="rounded-xl border border-slate-700 hover:bg-slate-850 px-3 py-2.5 text-xs font-semibold text-slate-300 transition"
+                  onClick={handlePrintReport}
+                  className="rounded-xl border border-slate-700 hover:bg-slate-850 px-3 py-2.5 text-xs font-semibold text-slate-300 transition flex items-center justify-center gap-2"
                   aria-label="Print report"
                 >
-                  Print Report
+                  <Printer className="h-3.5 w-3.5" /> Print Report
                 </button>
               </div>
             </div>

@@ -76,3 +76,24 @@ pytest_cache/
 # =========================
 *.db
 *.sqlite3
+
+ml/data/raw/
+ml/data/processed/
+ml/data/chunks/
+
+# OCR output
+ml/ocr/extracted_text/
+
+# Models
+ml/transformers/models/
+
+# Vector database
+ml/vector_search/
+
+# Embeddings
+ml/embeddings/
+
+# Temporary/sample files
+ml/**/sample_*.json
+ml/**/sample_*.txt
+ml/**/sample_*.npy

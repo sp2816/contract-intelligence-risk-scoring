@@ -101,9 +101,6 @@ Then run the backend as before; the UI will be reachable at `http://localhost:50
 | CORS error in browser | Verify `backend/.env` contains `CORS_ORIGINS=http://localhost:5173` and restart the API. |
 | Login always fails | Open DevTools → Network, check request to `/auth/login`. Ensure the backend route exists (`/auth/login`). |
 | Token never saved | Look in Chrome DevTools → Application → Local Storage for key `ai-contract-user`. |
-| Backend port already in use | Find PID: `netstat -ano | findstr :5000` then `taskkill /PID <pid> /F`. |
-
----
 **You’re all set!** Open two CMD windows: one for the backend (`uvicorn …`) and one for the frontend (`npm run dev`). Enjoy the fully‑connected, secure UI.
 
 

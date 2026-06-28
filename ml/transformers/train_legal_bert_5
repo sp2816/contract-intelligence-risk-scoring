@@ -11,41 +11,12 @@ from transformers import (
 MODEL_NAME = "nlpaueb/legal-bert-base-uncased"
 
 with open(
-    "ml/data/processed/clause_dataset_40.json",
+    "ml/data/processed/clause_dataset.json",
     "r",
     encoding="utf-8"
 ) as f:
 
     data = json.load(f)
-
-# Create label mappings
-labels = sorted({
-
-    item["label"]
-
-    for item in data
-})
-
-label2id = {
-
-    label: idx
-
-    for idx, label in enumerate(labels)
-}
-
-id2label = {
-
-    idx: label
-
-    for label, idx in label2id.items()
-}
-
-# Convert labels to integers
-for item in data:
-
-    item["label"] = label2id[
-        item["label"]
-    ]
 
 dataset = Dataset.from_list(data)
 
@@ -57,64 +28,23 @@ tokenizer = AutoTokenizer.from_pretrained(
 def tokenize(batch):
 
     return tokenizer(
-
         batch["text"],
-
         truncation=True,
-
         padding="max_length",
-
         max_length=256
     )
 
 
-dataset = dataset.map(
-    tokenize
-)
-
-dataset = dataset.rename_column(
-    "label",
-    "labels"
-)
-
-dataset.set_format(
-    "torch",
-    columns=[
-        "input_ids",
-        "attention_mask",
-        "labels"
-    ]
-)
+dataset = dataset.map(tokenize)
 
 dataset = dataset.train_test_split(
     test_size=0.2,
     seed=42
 )
 
-print(
-    "Number of Labels:",
-    len(labels)
-)
-
-print(
-    "Training Samples:",
-    len(dataset["train"])
-)
-
-print(
-    "Testing Samples:",
-    len(dataset["test"])
-)
-
 model = AutoModelForSequenceClassification.from_pretrained(
-
     MODEL_NAME,
-
-    num_labels=len(labels),
-
-    id2label=id2label,
-
-    label2id=label2id
+    num_labels=5
 )
 
 training_args = TrainingArguments(
@@ -125,7 +55,7 @@ training_args = TrainingArguments(
 
     save_strategy="epoch",
 
-    num_train_epochs=3,
+    num_train_epochs=2,
 
     per_device_train_batch_size=8,
 
@@ -145,8 +75,9 @@ trainer = Trainer(
     eval_dataset=dataset["test"]
 )
 
+
 MODEL_PATH = (
-    "ml/transformers/models/clause_classifier_40"
+    "ml/transformers/models/clause_classifier"
 )
 
 trainer.train()
@@ -156,14 +87,5 @@ trainer.save_model(
 )
 
 tokenizer.save_pretrained(
-    MODEL_PATH
-)
-
-print(
-    "\nModel Saved Successfully"
-)
-
-print(
-    "Path:",
     MODEL_PATH
 )

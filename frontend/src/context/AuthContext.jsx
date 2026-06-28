@@ -105,6 +105,7 @@ export function AuthProvider({ children }) {
       return data
     } catch (err) {
       const msg = err?.message || 'Registration failed. Please try again.'
+      console.log(err);
       setError(msg)
       throw err
     } finally {

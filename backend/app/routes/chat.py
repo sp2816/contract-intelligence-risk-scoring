@@ -5,6 +5,16 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.chat import ChatSession, ChatMessage
 from extensions import db
 
+import sys
+import os
+# Add parent directory of backend (workspace root) to path to load ml modules
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+try:
+    from ml.rag.contract_qa import answer_question as run_rag_pipeline
+    HAS_RAG = True
+except Exception:
+    HAS_RAG = False
+
 chat_bp = Blueprint('chat', __name__)
 
 def get_mock_ai_response(user_query: str) -> str:
@@ -256,7 +266,16 @@ def chat_stream():
     db.session.commit()
 
     def generate():
-        response_text = get_mock_ai_response(message)
+        response_text = None
+        if HAS_RAG:
+            try:
+                rag_results = run_rag_pipeline(message)
+                response_text = rag_results.get("answer")
+            except Exception as e:
+                current_app.logger.error(f"RAG QA pipeline failed: {e}")
+        
+        if not response_text:
+            response_text = get_mock_ai_response(message)
         
         # Persist AI response BEFORE streaming so it's never lost
         # if the client disconnects mid-stream (BUG-004 fix)

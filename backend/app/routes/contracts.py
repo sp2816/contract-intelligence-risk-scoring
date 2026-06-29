@@ -6,6 +6,15 @@ from werkzeug.utils import secure_filename
 from models.contract import Contract, Clause, RiskReport, Entity
 from extensions import db
 
+import sys
+# Add parent directory of backend (workspace root) to path to load ml modules
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+try:
+    from ml.pipeline.contract_analyzer import analyze_contract as run_ml_pipeline
+    HAS_ML = True
+except Exception:
+    HAS_ML = False
+
 contracts_bp = Blueprint('contracts', __name__)
 
 # ─── Configuration ──────────────────────────────────────────────────────────
@@ -251,6 +260,11 @@ def delete_contract(contract_id):
         except Exception as e:
             current_app.logger.error(f"Failed to delete file {contract.file_path}: {e}")
 
+    # Delete related tables to prevent orphaned child rows in databases without strict cascades
+    Clause.query.filter_by(contract_id=contract_id).delete()
+    Entity.query.filter_by(contract_id=contract_id).delete()
+    RiskReport.query.filter_by(contract_id=contract_id).delete()
+
     db.session.delete(contract)
     db.session.commit()
 
@@ -273,104 +287,187 @@ def analyze_contract(contract_id):
 
     filename = (contract.original_filename or contract.filename or '').lower()
     
-    # 1. Choose templates based on contract name
-    if 'nda' in filename or 'non-disclosure' in filename or 'confidential' in filename:
-        overall_score = 15.0
-        summary = "Standard low-risk Mutual Non-Disclosure Agreement with a 3-year survival clause and balanced confidentiality obligations."
-        high_clauses = 0
-        med_clauses = 0
-        low_clauses = 2
-        clauses_data = [
-            ('Confidential Information', '"Confidential Information" means all non-public information disclosed by a party to the receiving party.', 0.90, 'low'),
-            ('Survival Period', 'The obligations under this Agreement shall survive for a period of three (3) years from the date of disclosure.', 0.94, 'low')
-        ]
-        entities_data = [
-            ('DATE', '3 years', 0.92, 1),
-            ('JURISDICTION', 'State of Delaware', 0.88, 3)
-        ]
-    elif 'saas' in filename or 'service agreement' in filename or 'license' in filename:
-        overall_score = 74.0
-        summary = "The SaaS agreement presents high risk due to broad limitation of liability exemptions favoring the Provider, unilateral termination clauses, and the total omission of a GDPR-compliant Data Protection Addendum (DPA) despite handling personal user data."
-        high_clauses = 2
-        med_clauses = 1
-        low_clauses = 1
-        clauses_data = [
-            ('Limitation of Liability', '"In no event shall Provider be liable for any indirect, incidental, special or consequential damages. Provider\'s total aggregate liability under this agreement shall be capped at the total amount paid by Client in the preceding three (3) months."', 0.85, 'high'),
-            ('Indemnification Obligations', '"Client shall indemnify and defend Provider against any third-party claims, losses, or liabilities arising out of Client\'s use of the SaaS application, except to the extent caused by Provider\'s gross negligence."', 0.78, 'high'),
-            ('Termination for Convenience', '"Provider may terminate this agreement at any time for convenience upon thirty (30) days\' written notice to Client. Client may only terminate in the event of an uncured material breach by Provider."', 0.52, 'medium'),
-            ('Intellectual Property Assignment', '"Provider retains all right, title, and interest in and to the SaaS application, documentation, and any system metadata. Client retains all rights in client-loaded data."', 0.18, 'low')
-        ]
-        entities_data = [
-            ('COMPANY', 'Acme Corp', 0.98, 1),
-            ('COMPANY', 'DataCore Solutions Inc', 0.99, 1),
-            ('DATE', 'October 15, 2024', 0.95, 1),
-            ('JURISDICTION', 'State of Delaware', 0.92, 12)
-        ]
-    else:
-        # Default medium risk
-        overall_score = 45.0
-        summary = "Generic contract with moderate risk. Main concerns relate to warranty limitations and lack of clear dispute resolution procedures."
-        high_clauses = 0
-        med_clauses = 2
-        low_clauses = 1
-        clauses_data = [
-            ('Warranty Disclaimer', 'The services are provided "as is" without warranty of any kind, either express or implied.', 0.88, 'medium'),
-            ('Governing Law', 'This agreement shall be governed by and construed in accordance with the laws of the State of California.', 0.95, 'low'),
-            ('Dispute Resolution', 'Any dispute arising out of this agreement shall be settled by arbitration in San Francisco.', 0.70, 'medium')
-        ]
-        entities_data = [
-            ('JURISDICTION', 'State of California', 0.94, 5),
-            ('COMPANY', 'Client Partner', 0.85, 1)
-        ]
-
-    # 2. Update contract metadata (status always lowercase for consistency)
-    contract.status = 'analyzed'
-    contract.risk_score = overall_score
-    contract.contract_summary = summary
-    db.session.add(contract)
-
-    # 3. Clean existing references to prevent duplicates
+    # 1. Clean existing references to prevent duplicates
     Clause.query.filter_by(contract_id=contract_id).delete()
     RiskReport.query.filter_by(contract_id=contract_id).delete()
     Entity.query.filter_by(contract_id=contract_id).delete()
 
-    # 4. Create new records
-    report = RiskReport(
-        contract_id=contract_id,
-        overall_risk_score=int(overall_score),
-        risk_summary=summary,
-        high_risk_clauses=high_clauses,
-        medium_risk_clauses=med_clauses,
-        low_risk_clauses=low_clauses
-    )
-    db.session.add(report)
+    filename = (contract.original_filename or contract.filename or '').lower()
+    ml_processed = False
 
-    for c_type, c_text, conf, r_level in clauses_data:
-        clause = Clause(
+    if HAS_ML and contract.file_path and os.path.exists(contract.file_path):
+        try:
+            # Run the active ML analyzer pipeline
+            ml_results = run_ml_pipeline(contract.file_path)
+            
+            overall_score = ml_results.get("risk_score", 45.0)
+            level = ml_results.get("risk_level", "medium")
+            reasons = ml_results.get("risk_reasons", [])
+            summary = reasons[0] if reasons else "Contract successfully analyzed via ML pipeline."
+            
+            # Map predictions
+            clauses_data = []
+            high_clauses = 0
+            med_clauses = 0
+            low_clauses = 0
+            
+            for pred in ml_results.get("clause_predictions", []):
+                pred_label = pred.get("prediction", "UNCERTAIN")
+                pred_conf = pred.get("confidence", 0.0)
+                pred_text = pred.get("text", "")
+                
+                # Check labels for risk assigning
+                if pred_label in ["UNCERTAIN", "Limitation of Liability", "Indemnification"]:
+                    r_level = "high"
+                    high_clauses += 1
+                elif pred_label in ["Termination", "Warranty"]:
+                    r_level = "medium"
+                    med_clauses += 1
+                else:
+                    r_level = "low"
+                    low_clauses += 1
+                
+                clauses_data.append((pred_label, pred_text, pred_conf, r_level))
+
+            # Map entities
+            entities_data = []
+            for ent_type, ent_val in ml_results.get("entities", {}).items():
+                entities_data.append((ent_type, str(ent_val), 0.95, 1))
+
+            # Save report
+            report = RiskReport(
+                contract_id=contract_id,
+                overall_risk_score=int(overall_score),
+                risk_summary=summary,
+                high_risk_clauses=high_clauses,
+                medium_risk_clauses=med_clauses,
+                low_risk_clauses=low_clauses
+            )
+            db.session.add(report)
+
+            for c_type, c_text, conf, r_level in clauses_data:
+                clause = Clause(
+                    contract_id=contract_id,
+                    clause_type=c_type,
+                    clause_text=c_text,
+                    confidence_score=conf,
+                    risk_level=r_level
+                )
+                db.session.add(clause)
+
+            for e_type, e_value, conf, page in entities_data:
+                entity = Entity(
+                    contract_id=contract_id,
+                    entity_type=e_type,
+                    entity_value=e_value,
+                    confidence_score=conf,
+                    page_number=page
+                )
+                db.session.add(entity)
+
+            # Update contract details
+            contract.status = 'analyzed'
+            contract.risk_score = overall_score
+            contract.contract_summary = summary
+            db.session.add(contract)
+            
+            db.session.commit()
+            ml_processed = True
+            
+        except Exception as ml_err:
+            current_app.logger.error(f"ML Pipeline execution failed, falling back to simulation: {ml_err}")
+
+    if not ml_processed:
+        # Fall back to simulated templates
+        if 'nda' in filename or 'non-disclosure' in filename or 'confidential' in filename:
+            overall_score = 15.0
+            summary = "Standard low-risk Mutual Non-Disclosure Agreement with a 3-year survival clause and balanced confidentiality obligations."
+            high_clauses = 0
+            med_clauses = 0
+            low_clauses = 2
+            clauses_data = [
+                ('Confidential Information', '"Confidential Information" means all non-public information disclosed by a party to the receiving party.', 0.90, 'low'),
+                ('Survival Period', 'The obligations under this Agreement shall survive for a period of three (3) years from the date of disclosure.', 0.94, 'low')
+            ]
+            entities_data = [
+                ('DATE', '3 years', 0.92, 1),
+                ('JURISDICTION', 'State of Delaware', 0.88, 3)
+            ]
+        elif 'saas' in filename or 'service agreement' in filename or 'license' in filename:
+            overall_score = 74.0
+            summary = "The SaaS agreement presents high risk due to broad limitation of liability exemptions favoring the Provider, unilateral termination clauses, and the total omission of a GDPR-compliant Data Protection Addendum (DPA) despite handling personal user data."
+            high_clauses = 2
+            med_clauses = 1
+            low_clauses = 1
+            clauses_data = [
+                ('Limitation of Liability', '"In no event shall Provider be liable for any indirect, incidental, special or consequential damages. Provider\'s total aggregate liability under this agreement shall be capped at the total amount paid by Client in the preceding three (3) months."', 0.85, 'high'),
+                ('Indemnification Obligations', '"Client shall indemnify and defend Provider against any third-party claims, losses, or liabilities arising out of Client\'s use of the SaaS application, except to the extent caused by Provider\'s gross negligence."', 0.78, 'high'),
+                ('Termination for Convenience', '"Provider may terminate this agreement at any time for convenience upon thirty (30) days\' written notice to Client. Client may only terminate in the event of an uncured material breach by Provider."', 0.52, 'medium'),
+                ('Intellectual Property Assignment', '"Provider retains all right, title, and interest in and to the SaaS application, documentation, and any system metadata. Client retains all rights in client-loaded data."', 0.18, 'low')
+            ]
+            entities_data = [
+                ('COMPANY', 'Acme Corp', 0.98, 1),
+                ('COMPANY', 'DataCore Solutions Inc', 0.99, 1),
+                ('DATE', 'October 15, 2024', 0.95, 1),
+                ('JURISDICTION', 'State of Delaware', 0.92, 12)
+            ]
+        else:
+            overall_score = 45.0
+            summary = "Generic contract with moderate risk. Main concerns relate to warranty limitations and lack of clear dispute resolution procedures."
+            high_clauses = 0
+            med_clauses = 2
+            low_clauses = 1
+            clauses_data = [
+                ('Warranty Disclaimer', 'The services are provided "as is" without warranty of any kind, either express or implied.', 0.88, 'medium'),
+                ('Governing Law', 'This agreement shall be governed by and construed in accordance with the laws of the State of California.', 0.95, 'low'),
+                ('Dispute Resolution', 'Any dispute arising out of this agreement shall be settled by arbitration in San Francisco.', 0.70, 'medium')
+            ]
+            entities_data = [
+                ('JURISDICTION', 'State of California', 0.94, 5),
+                ('COMPANY', 'Client Partner', 0.85, 1)
+            ]
+
+        contract.status = 'analyzed'
+        contract.risk_score = overall_score
+        contract.contract_summary = summary
+        db.session.add(contract)
+
+        report = RiskReport(
             contract_id=contract_id,
-            clause_type=c_type,
-            clause_text=c_text,
-            confidence_score=conf,
-            risk_level=r_level
+            overall_risk_score=int(overall_score),
+            risk_summary=summary,
+            high_risk_clauses=high_clauses,
+            medium_risk_clauses=med_clauses,
+            low_risk_clauses=low_clauses
         )
-        db.session.add(clause)
+        db.session.add(report)
 
-    for e_type, e_value, conf, page in entities_data:
-        entity = Entity(
-            contract_id=contract_id,
-            entity_type=e_type,
-            entity_value=e_value,
-            confidence_score=conf,
-            page_number=page
-        )
-        db.session.add(entity)
+        for c_type, c_text, conf, r_level in clauses_data:
+            clause = Clause(
+                contract_id=contract_id,
+                clause_type=c_type,
+                clause_text=c_text,
+                confidence_score=conf,
+                risk_level=r_level
+            )
+            db.session.add(clause)
 
-    db.session.commit()
+        for e_type, e_value, conf, page in entities_data:
+            entity = Entity(
+                contract_id=contract_id,
+                entity_type=e_type,
+                entity_value=e_value,
+                confidence_score=conf,
+                page_number=page
+            )
+            db.session.add(entity)
+
+        db.session.commit()
 
     return jsonify({
         'message': 'Contract analyzed successfully.',
         'contract': contract.to_dict(),
-        'risk_report': report.to_dict(),
+        'risk_report': RiskReport.query.filter_by(contract_id=contract_id).first().to_dict(),
         'clauses': [c.to_dict() for c in Clause.query.filter_by(contract_id=contract_id).all()],
         'entities': [e.to_dict() for e in Entity.query.filter_by(contract_id=contract_id).all()]
     }), 200

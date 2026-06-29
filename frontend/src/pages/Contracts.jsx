@@ -359,7 +359,7 @@ export default function Contracts() {
       <div className={`rounded-3xl border overflow-hidden shadow-dark-soft backdrop-blur-md transition duration-300 ${isLight ? 'border-slate-200 bg-white/70' : 'border-slate-800 bg-slate-900/20'
         }`}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full min-w-[700px] text-left border-collapse">
             <thead>
               <tr className={`border-b ${isLight ? 'border-slate-200 bg-slate-50' : 'border-slate-800/80 bg-slate-950/40'}`}>
 

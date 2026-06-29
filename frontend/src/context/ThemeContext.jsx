@@ -13,7 +13,14 @@ export const ThemeProvider = ({ children }) => {
     const root = document.documentElement;
     // Set data-theme attribute — used by index.css for all overrides
     root.setAttribute('data-theme', theme);
-    // Clean up the old class-based approach so there's no conflict
+    // Add dark/light class for Tailwind class-based darkMode support
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
     root.classList.remove('light-mode');
     root.style.colorScheme = theme;
     localStorage.setItem('theme', theme);

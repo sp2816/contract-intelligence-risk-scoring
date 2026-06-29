@@ -555,8 +555,8 @@ function MetricWidget({ id, title, value, subtitle, icon: Icon, color }) {
 function ChartCard({ title, description, children, className = '' }) {
   return (
     <div className={`animate-slide-up rounded-2xl border border-slate-700 bg-gradient-to-br
-      from-slate-900 to-slate-800 p-6 shadow-dark-soft transition-all duration-300
-      hover:border-slate-600 dark:from-slate-800 dark:to-slate-900 ${className}`}>
+      from-slate-900 to-slate-800 p-4 sm:p-6 shadow-dark-soft transition-all duration-300
+      hover:border-slate-600 min-w-0 overflow-hidden dark:from-slate-800 dark:to-slate-900 ${className}`}>
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-white">{title}</h2>
         {description && <p className="mt-1 text-sm text-slate-400">{description}</p>}
@@ -671,13 +671,13 @@ function RecentContractsTable({ recent, loading, error, onRetry }) {
       )}
 
       {!loading && !error && (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 custom-scrollbar">
           {recent.length === 0 ? (
             <p className="py-10 text-center text-sm text-slate-500">
               No contracts yet. Upload your first contract to get started.
             </p>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[550px]">
               <thead>
                 <tr className="border-b border-slate-700">
                   {['Contract', 'Date', 'Risk Score', 'Status'].map((h) => (
@@ -1009,11 +1009,10 @@ export default function Dashboard() {
   ], [stats])
 
   return (
-    <div className="min-h-screen bg-slate-950 dark:bg-slate-950">
+    <div className="w-full">
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
-      <div className="border-b border-slate-800 bg-gradient-to-b
-        from-slate-900 to-slate-950 px-6 py-8">
+      <div className="pb-8">
         <div className="w-full">
 
           {/* Title row */}
@@ -1079,7 +1078,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
-      <div className="px-6 py-8">
+      <div className="py-6">
         <div className="w-full space-y-6">
 
           {/* ── Row 1: Circular Gauge + Risk Breakdown + Risk Levels ──── */}

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import Navbar from './Navbar.jsx'
-import Sidebar from './Sidebar.jsx'
 import NavigationProgress from './NavigationProgress.jsx'
 import PageTransition from './PageTransition.jsx'
 import { useTheme } from '../../context/ThemeContext.jsx'
@@ -19,19 +18,16 @@ const mobileNavItems = [
 
 function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isLight ? 'bg-slate-50 text-slate-800' : 'bg-slate-950 text-slate-100'
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isLight ? 'bg-slate-950 text-slate-700' : 'bg-slate-900 text-slate-100'
       }`}>
       <NavigationProgress />
       <Navbar
         onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         isMobileMenuOpen={isMobileMenuOpen}
-        onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        isSidebarCollapsed={isSidebarCollapsed}
       />
 
       {/* Mobile Menu Drawer Overlay */}
@@ -96,14 +92,9 @@ function AppShell() {
         </div>
       )}
 
-      {/* Main Grid Layout */}
-      <div
-        className={`mx-auto grid w-full flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8 transition-all duration-300 max-w-[1600px] ${isSidebarCollapsed ? 'lg:grid-cols-[80px_minmax(0,1fr)]' : 'lg:grid-cols-[280px_minmax(0,1fr)]'
-          }`}
-      >
-        <Sidebar isCollapsed={isSidebarCollapsed} />
-        <main className={`overflow-hidden rounded-[2rem] border p-6 shadow-dark-soft backdrop-blur-md transition-colors duration-300 ${isLight ? 'border-slate-200 bg-white/80' : 'border-slate-800 bg-slate-900/40'
-          }`}>
+      {/* Main Centered Layout */}
+      <div className="mx-auto w-full flex-1 max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+        <main className="overflow-hidden w-full transition-colors duration-300">
           <PageTransition>
             <Outlet />
           </PageTransition>

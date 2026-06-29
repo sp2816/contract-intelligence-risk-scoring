@@ -101,6 +101,25 @@ def create_app():
     
     from routes.chat import chat_bp
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
+
+    @app.route('/api/health', methods=['GET'])
+    def health_check():
+        from flask import jsonify
+        try:
+            db.session.execute(db.text('SELECT 1'))
+            db_status = 'connected'
+        except Exception as e:
+            db_status = f'disconnected: {str(e)}'
+
+        from routes.contracts import HAS_ML
+        from routes.chat import HAS_RAG
+
+        return jsonify({
+            'status': 'healthy',
+            'database': db_status,
+            'ml_pipeline': 'active' if HAS_ML else 'fallback_simulated',
+            'rag_chatbot': 'active' if HAS_RAG else 'fallback_simulated'
+        }), 200
     
     return app
 

@@ -1,0 +1,13 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+uploads
+
+app/__pycache__
+instance
+
+.git
+.gitignore

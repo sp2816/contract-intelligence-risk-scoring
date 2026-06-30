@@ -4,8 +4,9 @@ import Navbar from './Navbar.jsx'
 import NavigationProgress from './NavigationProgress.jsx'
 import PageTransition from './PageTransition.jsx'
 import { useTheme } from '../../context/ThemeContext.jsx'
+import { useAuth } from '../../hooks/useAuth.jsx'
 import routePaths from '../../utils/routes.js'
-import { X, ShieldAlert, LayoutDashboard, MessageSquare, FileText, User, Files, BarChart3 } from 'lucide-react'
+import { X, ShieldAlert, LayoutDashboard, MessageSquare, FileText, User, Files, BarChart3, LogOut } from 'lucide-react'
 
 const mobileNavItems = [
   { label: 'Dashboard', path: routePaths.dashboard, icon: LayoutDashboard },
@@ -19,6 +20,7 @@ const mobileNavItems = [
 function AppShell() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { theme } = useTheme()
+  const { logout } = useAuth()
   const isLight = theme === 'light'
 
   return (
@@ -78,6 +80,17 @@ function AppShell() {
                 </NavLink>
               ))}
             </nav>
+
+            {/* Logout Button */}
+            <div className={`mt-auto pt-4 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); logout(); }}
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition hover:text-red-400 ${isLight ? 'text-slate-500 hover:bg-red-50' : 'text-slate-400 hover:bg-slate-800'}`}
+              >
+                <LogOut className="h-5 w-5" />
+                Logout
+              </button>
+            </div>
 
             <div className={`rounded-3xl border p-5 text-sm backdrop-blur-md ${isLight ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-slate-800 bg-slate-950/50 text-slate-300'
               }`}>

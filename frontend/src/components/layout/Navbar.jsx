@@ -8,7 +8,7 @@ import {
   Menu, X, Home, Bell, User as UserIcon, 
   Sun, Moon, LayoutDashboard, MessageSquare, 
   FileText, Files, BarChart3, ChevronDown,
-  CheckCircle2, AlertCircle, Clock, Loader2
+  CheckCircle2, AlertCircle, Clock, Loader2, LogOut
 } from 'lucide-react'
 
 const navItems = [
@@ -31,7 +31,7 @@ function timeAgo(date) {
 }
 
 function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const isLight = theme === 'light'
 
@@ -327,6 +327,16 @@ function Navbar({ onToggleMobileMenu, isMobileMenuOpen }) {
                   }`}
               >
                 {isLight ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={logout}
+                title="Logout"
+                className={`p-2 rounded-full transition ${isLight ? 'text-slate-500 hover:bg-red-50 hover:text-red-500' : 'text-slate-400 hover:text-red-400 hover:bg-slate-850'
+                  }`}
+              >
+                <LogOut className="h-5 w-5" />
               </button>
 
               {/* User Profile Avatar with green online status dot */}

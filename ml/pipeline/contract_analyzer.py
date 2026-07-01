@@ -63,6 +63,8 @@ def analyze_contract(pdf_path):
     t = time.time()
 
     clause_results = detect_clauses(chunks)
+    print("\nFirst Clause Prediction:")
+    print(clause_results[0])
 
     print(f"Clause Detection Time: {time.time() - t:.2f}s")
 
@@ -97,8 +99,8 @@ def analyze_contract(pdf_path):
     print("\n===== FINAL SCORE =====")
     print(score)
     print(level)
-    print("\n===== ENTITIES =====")
-    print(entities)
+    # print("\n===== ENTITIES =====")
+    # print(entities)
     print("\n===== METADATA =====")
     print(metadata)
     return {

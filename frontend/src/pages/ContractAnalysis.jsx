@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { 
   Upload, File, ShieldAlert, CheckCircle, AlertTriangle, 
   HelpCircle, ChevronRight, RefreshCw, Layers, ArrowRight,
@@ -164,6 +164,9 @@ const buildReportData = (data) => {
 }
 
 export default function ContractAnalysis() {
+
+  const navigate = useNavigate();
+
   const [searchParams] = useSearchParams()
   const queryId = searchParams.get('id')
 
@@ -176,8 +179,8 @@ export default function ContractAnalysis() {
   const [clauseFilter, setClauseFilter] = useState('all')
   const [uploadError, setUploadError] = useState('')
   const [uploadedContract, setUploadedContract] = useState(null)
-  const [analysisReport, setAnalysisReport] = useState(MOCK_ANALYSIS_REPORT)
-  const analysisPromiseRef = useRef(null)
+  const [analysisReport, setAnalysisReport] = useState(null)
+  //const analysisPromiseRef = useRef(null)
 
   // Effect to load existing contract by ID from URL
   useEffect(() => {
@@ -200,18 +203,46 @@ export default function ContractAnalysis() {
         const isAnalyzed = ['analyzed', 'reviewed', 'approved', 'completed', 'analysis_complete'].includes(statusLower)
         
         if (!isAnalyzed) {
-          await analyzeContract(queryId)
-          const updatedDetails = await getContractDetails(queryId)
-          setUploadedContract(updatedDetails.contract)
-          setAnalysisReport(buildReportData(updatedDetails))
+
+            try {
+                await analyzeContract(queryId)
+            } catch (err) {
+                console.log("Analysis still running...");
+            }
+
+            // Wait until backend finishes
+            let updatedDetails = null;
+
+            for (let i = 0; i < 30; i++) {
+
+                updatedDetails = await getContractDetails(queryId);
+
+                if (
+                    updatedDetails.contract.status &&
+                    updatedDetails.contract.status.toLowerCase() === "analyzed"
+                ) {
+                    break;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            setAnalysisProgress(100);
+
+            setUploadedContract(updatedDetails.contract);
+            setAnalysisReport(buildReportData(updatedDetails));
+
         } else {
-          setAnalysisReport(buildReportData(details))
+
+            setAnalysisReport(buildReportData(details));
+
         }
         
         setStatus('completed')
       } catch (err) {
-        setUploadError(err?.message || 'Failed to load contract details.')
-        setStatus('error')
+          console.error(err);
+
+          setUploadError(err?.message || "Failed to load contract.");
+          setStatus("error");
       }
     }
 
@@ -219,13 +250,14 @@ export default function ContractAnalysis() {
   }, [queryId])
 
   // Combined progress: upload is 0-50%, analysis simulation is 50-100%
-  const totalProgress = status === 'uploading'
-    ? Math.round(uploadProgress * 0.5)
-    : status === 'analyzing'
-    ? 50 + Math.round(analysisProgress * 0.5)
-    : status === 'completed'
+  const totalProgress =
+  status === "uploading"
+    ? Math.round(uploadProgress * 0.2)
+    : status === "analyzing"
+    ? 20 + Math.round(analysisProgress * 0.8)
+    : status === "completed"
     ? 100
-    : 0
+    : 0;
 
   // Handle file select/drag events
   const handleDragOver = (e) => {
@@ -254,6 +286,7 @@ export default function ContractAnalysis() {
   }
 
   const processFile = async (selectedFile) => {
+    
     // ─── Client-side validation ───────────────────────────────────────────
     const validation = validateContractFile(selectedFile)
     if (!validation.isValid) {
@@ -277,83 +310,72 @@ export default function ContractAnalysis() {
       })
 
       const contract = response.contract
-      setUploadedContract(contract)
+      //setUploadedContract(contract)
+
+      navigate(`/contract-analysis?id=${contract.id}`);
+
+      return;
       
       // Upload done → start simulated analysis phase
-      setStatus('analyzing')
-      setUploadProgress(100)
-      setAnalysisProgress(0)
-      setCurrentStepIndex(0)
+      //setStatus('analyzing')
+      //setUploadProgress(100)
+      //setAnalysisProgress(0)
+      //setCurrentStepIndex(0)
 
       // Start background analysis immediately on the server
       // Store the promise so the simulation completion can await it
-      analysisPromiseRef.current = analyzeContract(contract.id).catch(err => {
-        console.error("Background analysis failed:", err)
-        return null // swallow so Promise.all / await won't throw
-      })
+
+      // analysisPromiseRef.current = analyzeContract(contract.id).catch(err => {
+      //   console.error("Background analysis failed:", err)
+      //   return null // swallow so Promise.all / await won't throw
+      // })
+
     } catch (err) {
       setUploadError(err?.message || 'Upload failed. Please try again.')
       setStatus('error')
     }
+
+    
   }
 
   // Simulate analysis steps after upload completes
   useEffect(() => {
-    if (status !== 'analyzing') return
+  if (status !== "analyzing") return;
 
-    let currentStep = 0
-    let stepTimer = null
+  setAnalysisProgress(0);
+  setCurrentStepIndex(0);
 
-    const executeNextStep = () => {
-      if (currentStep >= ANALYSIS_STEPS.length) {
-        setAnalysisProgress(100)
-        setTimeout(async () => {
-          if (uploadedContract) {
-            try {
-              // Wait for the real analysis API call to finish before fetching details
-              if (analysisPromiseRef.current) {
-                await analysisPromiseRef.current
-                analysisPromiseRef.current = null
-              }
-              const details = await getContractDetails(uploadedContract.id)
-              setAnalysisReport(buildReportData(details))
-            } catch (err) {
-              console.error("Failed to load real details, falling back to mock.", err)
-            }
-          }
-          setStatus('completed')
-        }, 500)
-        return
-      }
+  let progress = 0;
 
-      setCurrentStepIndex(currentStep)
+  const timer = setInterval(() => {
 
-      const startProg = Math.round((currentStep / ANALYSIS_STEPS.length) * 100)
-      const endProg = Math.round(((currentStep + 1) / ANALYSIS_STEPS.length) * 100)
-      let currentProg = startProg
+    // Never reach 100 until backend says done
+    if (progress < 95) {
 
-      const progressInterval = setInterval(() => {
-        if (currentProg < endProg) {
-          currentProg += 1
-          setAnalysisProgress(Math.min(currentProg, 99))
-        } else {
-          clearInterval(progressInterval)
-        }
-      }, ANALYSIS_STEPS[currentStep].duration / (endProg - startProg))
+      progress += Math.random() * 2 + 0.5;
 
-      stepTimer = setTimeout(() => {
-        clearInterval(progressInterval)
-        currentStep += 1
-        executeNextStep()
-      }, ANALYSIS_STEPS[currentStep].duration)
+      if (progress > 95)
+        progress = 95;
+
+      setAnalysisProgress(progress);
+
+      // Update visible step
+      if (progress < 25)
+        setCurrentStepIndex(0);
+      else if (progress < 50)
+        setCurrentStepIndex(1);
+      else if (progress < 75)
+        setCurrentStepIndex(2);
+      else
+        setCurrentStepIndex(3);
+
     }
 
-    executeNextStep()
+  }, 500);
 
-    return () => {
-      clearTimeout(stepTimer)
-    }
-  }, [status, uploadedContract])
+  return () => clearInterval(timer);
+
+}, [status]);
 
   const handleReset = () => {
     setFile(null)
@@ -772,7 +794,7 @@ export default function ContractAnalysis() {
       )}
 
       {/* UPLOADING & ANALYZING state: Progress Tracker */}
-      {(status === 'uploading' || status === 'analyzing') && (
+      {(status === 'uploading' || status === 'analyzing' || (status === 'completed' && !analysisReport)) && (
         <div className="rounded-[2.5rem] border border-slate-800 bg-slate-900/40 p-6 md:p-10 shadow-xl backdrop-blur-md max-w-3xl mx-auto w-full space-y-8 animate-slide-up">
           <div className="flex items-center justify-between border-b border-slate-850 pb-6">
             <div className="flex items-center gap-4">
@@ -782,7 +804,11 @@ export default function ContractAnalysis() {
               <div>
                 <h3 className="font-bold text-white text-lg truncate max-w-md">{file?.name}</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  {status === 'uploading' ? 'Uploading contract to secure cloud...' : 'AI analysis in progress...'}
+                  {status === "uploading"
+                    ? "Uploading contract to secure cloud..."
+                    : analysisProgress === 100
+                      ? "Finalizing AI analysis... This may take a few seconds."
+                      : "AI analysis in progress..."}
                 </p>
               </div>
             </div>
@@ -858,7 +884,7 @@ export default function ContractAnalysis() {
       )}
 
       {/* COMPLETED state: Detailed Risk Assessment Dashboard */}
-      {status === 'completed' && (
+      {status === "completed" && analysisReport && (
         <div className="space-y-6 animate-fade-in">
 
           {/* Upload success banner */}
@@ -896,7 +922,7 @@ export default function ContractAnalysis() {
                     cx="72"
                     cy="72"
                     r={radius}
-                    className={`${getRiskGaugeColor(analysisReport.riskScore)} fill-none transition-all duration-1000 ease-out`}
+                    className={`${getRiskGaugeColor(analysisReport.riskScore ?? 0)} fill-none transition-all duration-1000 ease-out`}
                     strokeWidth={strokeWidth}
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeDashoffset}
@@ -904,9 +930,9 @@ export default function ContractAnalysis() {
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-3xl font-extrabold text-white tracking-tight">{analysisReport.riskScore}%</span>
-                  <span className={`text-[10px] font-bold mt-0.5 tracking-wider uppercase ${getRiskTextColor(analysisReport.riskScore)}`}>
-                    {analysisReport.riskLabel}
+                  <span className="text-3xl font-extrabold text-white tracking-tight">{analysisReport.riskScore ?? 0}%</span>
+                  <span className={`text-[10px] font-bold mt-0.5 tracking-wider uppercase ${getRiskTextColor(analysisReport.riskScore ?? 0)}`}>
+                    {analysisReport.riskLabel  ?? "ANALYZING"}
                   </span>
                 </div>
               </div>
@@ -929,10 +955,10 @@ export default function ContractAnalysis() {
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Agreement Class</span>
                   <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.agreementType}</span>
                 </div>
-                <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4">
+                {/* <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Contracting Entities</span>
                   <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.parties}</span>
-                </div>
+                </div> */}
                 <div className="rounded-2xl border border-slate-850 bg-slate-950/40 p-4 sm:col-span-2 lg:col-span-1">
                   <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider block">Governing Laws & Date</span>
                   <span className="text-sm font-semibold text-slate-200 mt-1 block leading-tight">{analysisReport.governingLaw} ({analysisReport.effectiveDate})</span>
@@ -941,7 +967,7 @@ export default function ContractAnalysis() {
 
               <div className="border-t border-slate-850 pt-4 space-y-2">
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Executive Summary</h3>
-                <p className="text-sm text-slate-300 leading-relaxed">{analysisReport.riskSummary}</p>
+                <p className="text-sm text-slate-300 leading-relaxed">{analysisReport.riskSummary ?? "Analyzing contract..."}</p>
               </div>
             </div>
 

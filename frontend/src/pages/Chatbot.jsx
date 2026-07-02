@@ -72,7 +72,7 @@ export default function Chatbot() {
   const [isGenerating, setIsGenerating] = useState(false)
 
   const [inputText, setInputText] = useState('')
-  const [chatbotStyle, setChatbotStyle] = useState('enterprise') // 'chatgpt' | 'claude' | 'enterprise'
+  const chatbotStyle = 'enterprise'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [editingSessionId, setEditingSessionId] = useState(null)
@@ -294,8 +294,8 @@ export default function Chatbot() {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
-          message: text.trim(),
-          session_id: currentSessionId
+            message: text.trim(),
+            session_id: currentSessionId
         })
       })
 
@@ -350,10 +350,10 @@ export default function Chatbot() {
       }
 
       setIsGenerating(false)
-      // Re-load the session messages properly to align timestamps/IDs, and refresh list to show updated title
-      if (currentSessionId) {
-        loadMessages(currentSessionId)
-        loadSessions()
+
+      // Only refresh the sidebar sessions
+      if (!activeSessionId) {
+          loadSessions()
       }
 
     } catch (error) {
@@ -414,31 +414,6 @@ export default function Chatbot() {
 
   // Get style class variables based on selection
   const getStyleClasses = () => {
-    switch (chatbotStyle) {
-      case 'chatgpt':
-        return {
-          wrapper: 'bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden',
-          sidebar: 'bg-slate-950 border-r border-slate-850',
-          messageList: 'bg-slate-900',
-          userBubble: 'bg-slate-800 text-slate-100 rounded-2xl rounded-tr-none px-4 py-3 shadow-sm self-end max-w-[80%]',
-          aiBubble: 'bg-transparent text-slate-200 px-4 py-3 self-start max-w-[90%]',
-          avatarAi: 'bg-emerald-600 text-white rounded-lg p-1.5',
-          avatarUser: 'bg-slate-700 text-slate-100 rounded-lg p-1.5',
-          header: 'border-b border-slate-800 bg-slate-900/80'
-        }
-      case 'claude':
-        return {
-          wrapper: 'bg-slate-950 border border-slate-850 rounded-3xl overflow-hidden',
-          sidebar: 'bg-slate-900 border-r border-slate-800/80',
-          messageList: 'bg-slate-950',
-          userBubble: 'bg-indigo-950/40 border border-indigo-900/60 text-indigo-200 rounded-3xl rounded-tr-md px-5 py-3.5 self-end max-w-[80%] shadow-md shadow-indigo-950/10',
-          aiBubble: 'bg-slate-900/60 border border-slate-800 text-slate-300 rounded-3xl rounded-tl-md px-5 py-3.5 self-start max-w-[85%] shadow-sm',
-          avatarAi: 'bg-amber-600/20 border border-amber-500/30 text-amber-400 rounded-full p-2',
-          avatarUser: 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-full p-2',
-          header: 'border-b border-slate-850 bg-slate-950/80'
-        }
-      case 'enterprise':
-      default:
         return {
           wrapper: 'bg-slate-900/40 border border-slate-800/80 rounded-[2rem] overflow-hidden backdrop-blur-md',
           sidebar: 'bg-slate-950/80 border-r border-slate-800/60',
@@ -449,7 +424,6 @@ export default function Chatbot() {
           avatarUser: 'bg-gradient-to-br from-sky-400 to-blue-500 text-white rounded-xl p-2 shadow-md shadow-sky-500/10',
           header: 'border-b border-slate-800 bg-slate-900/50 backdrop-blur-md'
         }
-    }
   }
 
   const s = getStyleClasses()
@@ -458,33 +432,14 @@ export default function Chatbot() {
   return (
     <div className="flex flex-col gap-6 h-full min-h-[calc(100vh-12rem)] relative">
       {/* Page header and Style Switcher */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Legal Intelligence</p>
           <h1 className="text-3xl font-semibold text-white sm:text-4xl">AI Legal Assistant</h1>
         </div>
 
         {/* Style Switcher */}
-        <div className="flex items-center gap-1 rounded-2xl border border-slate-800 bg-slate-950/60 p-1 backdrop-blur-sm self-start">
-          {['chatgpt', 'claude', 'enterprise'].map((style) => (
-            <button
-              key={style}
-              type="button"
-              onClick={() => setChatbotStyle(style)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold tracking-wide capitalize transition ${
-                chatbotStyle === style 
-                  ? style === 'claude' 
-                    ? 'bg-indigo-950 border border-indigo-900/50 text-indigo-300 shadow'
-                    : style === 'enterprise'
-                    ? 'bg-slate-900 border border-slate-750 text-amber-400 shadow'
-                    : 'bg-slate-800 text-white shadow'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {style === 'chatgpt' ? 'ChatGPT Style' : style === 'claude' ? 'Claude Style' : 'Enterprise Legal'}
-            </button>
-          ))}
-        </div>
+        
       </div>
 
       {/* Main chat workspace */}

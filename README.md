@@ -1,99 +1,242 @@
-# AI Contract Intelligence & Risk Scoring Platform
+# AI-Powered Contract Intelligence & Risk Scoring Platform
 
-Welcome to the **AI Contract Intelligence & Risk Scoring Platform**, a secure, real-time enterprise workspace for legal teams to analyze contract risks, automate clause reviews, and interact with documents using a legal chatbot assistant.
+An AI-powered legal document analysis platform that automates contract understanding, clause extraction, metadata identification, risk assessment, and intelligent question answering using Natural Language Processing (NLP), Machine Learning, and Retrieval-Augmented Generation (RAG).
 
----
-
-## Repository Structure
-
-- **/backend**: Flask API server, SQLAlchemy ORM, and SQLite database instance.
-- **/frontend**: React + Vite single page application styled with TailwindCSS (dark-mode aesthetic and glassmorphism).
+The platform enables users to upload contracts, perform automated AI analysis, generate risk reports, and interact with all uploaded contracts through an intelligent chatbot.
 
 ---
 
-## Prerequisites
+## Features
 
-Before running the application, make sure you have the following installed on your machine:
-1. **Node.js** (v18.x or higher) & **npm**
-2. **Python** (v3.10.x or higher)
-3. **SQLite** (usually pre-installed with Python)
+### 📄 Contract Management
+- Secure user authentication using JWT
+- Upload PDF contracts
+- View and manage uploaded contracts
+- Store contract history
 
----
+### 🤖 AI Contract Analysis
+- Automatic PDF text extraction
+- OCR support for scanned documents
+- Named Entity Recognition (NER)
+- Metadata extraction
+  - Contracting parties
+  - Effective date
+  - Governing law
+- Clause extraction and classification
+- AI-generated contract summaries
 
-## Step-by-Step Setup Guide
+### ⚠️ Risk Assessment
+- Automated contract risk scoring
+- Risk categorization
+  - Low Risk
+  - Medium Risk
+  - High Risk
+- Clause-level risk identification
+- Risk report generation
 
-### 1. Database Initialization & Seeding
+### 💬 AI Legal Chatbot
+- Ask questions across all uploaded contracts
+- Retrieval-Augmented Generation (RAG)
+- Semantic search using FAISS
+- Database-aware chatbot for contract statistics
+- Natural language contract queries
 
-The application uses a local SQLite database located in `backend/app/instance/lexai.db`. You must initialize the schema and seed it with default records (including default users and contracts) before launching the backend.
+Example questions:
+- Which contract has the highest risk score?
+- Show recent contracts.
+- What is the average risk score?
+- Explain the termination clause.
+- Summarize the confidentiality obligations.
 
-1. Open your terminal and navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-2. Activate your virtual environment:
-   * **Windows (PowerShell/CMD):**
-     ```powershell
-     .venv\Scripts\activate
-     # OR (if using the other env folder)
-     cirs_env\Scripts\activate
-     ```
-   * **macOS/Linux:**
-     ```bash
-     source .venv/bin/activate
-     ```
-3. Run the database initialization and seeding script:
-   ```bash
-   python init_db.py
-   ```
-   *This creates the database, initializes the tables (users, contracts, clauses, risk reports, chat sessions), and inserts default accounts and contracts.*
-
----
-
-### 2. Running the Backend (Flask API Server)
-
-1. Ensure your virtual environment is still active and navigate to the backend application directory:
-   ```bash
-   cd backend/app
-   ```
-2. Launch the Flask API server:
-   ```bash
-   python main.py
-   ```
-   *The server will start running on [http://localhost:5000](http://localhost:5000) (or `http://127.0.0.1:5000`). Keep this terminal open.*
-
----
-
-### 3. Running the Frontend (React + Vite Client)
-
-1. Open a new terminal window and navigate to the `frontend` directory:
-   ```bash
-   cd frontend
-   ```
-2. Install the node package dependencies (only needed on first run):
-   ```bash
-   npm install
-   ```
-3. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-   *The client will compile and become accessible on [http://localhost:5173](http://localhost:5173). Open this link in your browser.*
+### 📊 Dashboard & Analytics
+- Total uploaded contracts
+- Average risk score
+- High / Medium / Low risk distribution
+- Recent contract activity
+- Interactive analytics dashboard
 
 ---
 
-## Authentication & Verification
+## Tech Stack
 
-### Seeded Credentials
-You can log in to the workspace immediately using the following pre-seeded developer/demo accounts:
-- **Demo Legal Counsel:**
-  * **Email:** `demo@lexai-intel.com`
-  * **Password:** `password123`
-- **Admin Legal Reviewer:**
-  * **Email:** `admin@lexai-intel.com`
-  * **Password:** `adminsecure`
+### Frontend
+- React.js
+- Vite
+- Tailwind CSS
+- Axios
+- React Router
 
-### Registering New Users
-You can also register a completely new user on the **Sign Up** page. 
-- Newly registered accounts are instantly created in the live SQLite database.
-- Every new user is initialized with a default set of preferences (e.g. Dark Theme, default dashboard view, email notifications) and automatically logged into their workspace.
-- You can manage and save your preferences in real-time from the **Profile / Settings** page, which are persisted directly to the backend database.
+### Backend
+- Flask
+- SQLAlchemy
+- Flask-JWT-Extended
+- Flask-CORS
+
+### AI / Machine Learning
+- spaCy
+- Hugging Face Transformers
+- Sentence Transformers
+- FAISS
+- pdfplumber
+- pytesseract
+- pdf2image
+
+### Database
+- SQLite
+
+---
+
+## Project Structure
+
+```
+contract-intelligence-risk-scoring/
+│
+├── backend/
+│   ├── app/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── schemas/
+│   │   ├── instance/
+│   │   └── main.py
+│   └── uploads/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── routes/
+│   │   └── hooks/
+│
+├── ml/
+│   ├── pipeline/
+│   ├── rag/
+│   ├── vector_search/
+│   ├── risk_scoring/
+│   ├── clause_extraction/
+│   └── utils/
+│
+└── README.md
+```
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/<your-username>/contract-intelligence-risk-scoring.git
+
+cd contract-intelligence-risk-scoring
+```
+
+---
+
+### 2. Backend Setup
+
+Navigate to the backend directory.
+
+```bash
+cd backend
+```
+
+Create a virtual environment.
+
+```bash
+python -m venv venv
+```
+
+Activate the virtual environment.
+
+**Windows**
+
+```bash
+venv\Scripts\activate
+```
+
+**Linux / macOS**
+
+```bash
+source venv/bin/activate
+```
+
+Install the required dependencies.
+
+```bash
+pip install -r requirements.txt
+```
+
+Start the Flask server.
+
+```bash
+python app/main.py
+```
+
+Backend will run at:
+
+```
+http://localhost:5000
+```
+
+---
+
+### 3. Frontend Setup
+
+Open a new terminal.
+
+```bash
+cd frontend
+```
+
+Install dependencies.
+
+```bash
+npm install
+```
+
+Start the React application.
+
+```bash
+npm run dev
+```
+
+Frontend will run at:
+
+```
+http://localhost:5173
+```
+
+---
+
+## Application Workflow
+
+1. Register or log in.
+2. Upload a PDF contract.
+3. AI extracts and cleans the contract text.
+4. Metadata and entities are identified.
+5. Clauses are extracted and classified.
+6. Risk score and contract summary are generated.
+7. Results are stored in the database.
+8. Ask questions through the AI chatbot.
+9. View contract analytics and reports.
+
+---
+
+## Future Enhancements
+
+- DOCX contract support
+- Multi-contract comparison
+- Advanced clause recommendations
+- Cloud deployment (AWS/Azure)
+- Docker support
+- PostgreSQL integration
+- Multi-language contract analysis
+- LLM-powered legal drafting assistant
+
+---
+
+## Contributors
+
+Developed as part of an AI-powered legal contract intelligence project using modern NLP, Machine Learning, and Retrieval-Augmented Generation (RAG) techniques.

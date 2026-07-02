@@ -1,31 +1,17 @@
-from ml.rag.retriever import (
-    retrieve_context
-)
+from ml.rag.retriever import retrieve_context
+from ml.rag.simple_summarizer import summarize_context
 
-from ml.rag.simple_summarizer import (
-    summarize_context
-)
-
-def answer_question(
-    question
-):
+def answer_question(question):
 
     context = retrieve_context(
-        question,
-        top_k=3
+        query=question,
+        top_k=10
     )
 
-    summary = summarize_context(
-        context
-    )
+    summary = summarize_context(context)
 
     return {
-
         "question": question,
-
-        "retrieved_chunks":
-        len(context),
-
-        "answer":
-        summary
+        "retrieved_chunks": len(context),
+        "answer": summary
     }

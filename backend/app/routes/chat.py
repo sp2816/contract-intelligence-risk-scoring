@@ -4,15 +4,24 @@ from flask import Blueprint, request, Response, stream_with_context, jsonify, cu
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.chat import ChatSession, ChatMessage
 from extensions import db
+from services.chat_router import route_question
 
 import sys
 import os
-# Add parent directory of backend (workspace root) to path to load ml modules
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+
+sys.path.append(
+    os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..")
+    )
+)
+
 try:
     from ml.rag.contract_qa import answer_question as run_rag_pipeline
     HAS_RAG = True
-except Exception:
+    print("✅ RAG Loaded")
+except Exception as e:
+    print("❌ RAG FAILED")
+    print(e)
     HAS_RAG = False
 
 chat_bp = Blueprint('chat', __name__)
@@ -190,7 +199,6 @@ def create_session():
     
     session = ChatSession(
         user_id=user_id,
-        contract_id=contract_id,
         session_title=title
     )
     db.session.add(session)
@@ -255,7 +263,7 @@ def chat_stream():
             return jsonify({'error': 'Chat session not found'}), 404
     else:
         title = message[:30] + ('...' if len(message) > 30 else '')
-        session = ChatSession(user_id=user_id, contract_id=contract_id, session_title=title)
+        session = ChatSession(user_id=user_id, session_title=title)
         db.session.add(session)
         db.session.commit()
         session_id = session.id
@@ -267,18 +275,42 @@ def chat_stream():
 
     def generate():
         response_text = None
-        if HAS_RAG:
-            try:
+
+        try:
+            print("\n==========================")
+            print("QUESTION:", message)
+            routed = route_question(message)
+            print("ROUTED TO:", routed["type"])
+
+            if routed["type"] == "database":
+                response_text = routed["answer"]
+
+            else:
+                print("Running RAG pipeline...")
+
                 rag_results = run_rag_pipeline(message)
-                response_text = rag_results.get("answer")
-            except Exception as e:
-                current_app.logger.error(f"RAG QA pipeline failed: {e}")
-        
+
+                print(rag_results)
+
+                response_text = rag_results["answer"]
+
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
+
+            current_app.logger.exception(e)
+
+            response_text = f"ERROR:\n{str(e)}"
+
         if not response_text:
-            response_text = get_mock_ai_response(message)
+            response_text = "Sorry, I couldn't generate a response."
         
         # Persist AI response BEFORE streaming so it's never lost
         # if the client disconnects mid-stream (BUG-004 fix)
+        print("\nFINAL RESPONSE:")
+        print(response_text)
+        print("==========================\n")
         ai_msg = ChatMessage(session_id=session_id, sender='assistant', message=response_text)
         db.session.add(ai_msg)
         db.session.commit()

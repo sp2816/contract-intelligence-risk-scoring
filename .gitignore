@@ -37,8 +37,8 @@ uploads/
 ml/**/model/
 *.pt
 *.pth
-*.bin
-*.safetensors
+# *.bin
+# *.safetensors
 
 # =========================
 # Jupyter
@@ -78,17 +78,17 @@ pytest_cache/
 *.sqlite3
 
 ml/data/raw/
-ml/data/processed/
-ml/data/chunks/
+# ml/data/processed/
+# ml/data/chunks/
 
 # OCR output
 ml/ocr/extracted_text/
 
 # Models
-ml/transformers/models/
+# ml/transformers/models/
 
 # Vector database
-ml/vector_search/
+# ml/vector_search/
 
 # Embeddings
 ml/embeddings/

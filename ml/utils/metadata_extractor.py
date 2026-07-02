@@ -1,40 +1,32 @@
-# ml/utils/metadata_extractor.py
-
 import re
 
-
+# Ignore common false-positive ORGs
 IGNORE_ORGS = {
-
     "Party",
     "Party A",
     "Party B",
     "Company",
     "Consultant",
-    "Services",
     "Agreement",
+    "Services",
     "Confidential Information",
-    "Milestone",
-    "Target Date",
-    "FTE",
-
-    "Development Agreement",
-
-    "LIMITED AUTHORITY AS AGENT 14.1",
-    "RELATIONSHIP 12.1",
-    "NOTICES",
-    "FURTHER",
-    "CONFIDENTIALITY",
-    "DISCLOSURE",
-    "SEVERABILITY",
-
     "Board",
     "Works",
-    "Term"
+    "Term",
+    "Witness",
+    "Exhibit",
+    "Schedule",
+    "Article",
+    "Section",
+    "Notice",
+    "Disclosure",
+    "Confidentiality",
+    "Severability",
+    "LLC",
 }
 
-
-COMPANY_KEYWORDS = (
-
+# Words that indicate a company
+COMPANY_WORDS = (
     "INC",
     "INC.",
     "CORP",
@@ -42,145 +34,179 @@ COMPANY_KEYWORDS = (
     "CORPORATION",
     "LTD",
     "LTD.",
-    "LLC",
     "LIMITED",
-    "COMPANY",
-    "CAPITAL",
-    "HOLDINGS",
+    "LLC",
+    "PLC",
     "GROUP",
+    "HOLDINGS",
+    "CAPITAL",
     "TECHNOLOGY",
-    "INDUSTRIES"
+    "TECHNOLOGIES",
+    "THERAPEUTICS",
+    "BIOPHARMA",
+    "BIO",
+    "HEALTH",
+    "SYSTEMS",
 )
 
 
-def extract_contract_metadata(
-    entities,
-    contract_text
-):
+def clean_company(name):
 
-    orgs = []
-    dates = []
-    locations = []
+    name = re.sub(r"\s+", " ", name)
+    name = name.strip()
 
-    for entity in entities:
+    name = name.rstrip(",.;")
 
-        text = entity["text"].strip()
-        label = entity["label"]
+    return name
 
-        # -------------------------
-        # ORGS / PARTIES
-        # -------------------------
 
-        if label == "ORG":
-
-            if text in IGNORE_ORGS:
-                continue
-
-            if len(text) < 8:
-                continue
-
-            # remove junk headings
-            if any(char.isdigit() for char in text):
-                continue
-
-            if text.upper() in {
-                "LLC",
-                "INC",
-                "CORP",
-                "LTD"
-            }:
-                continue
-
-            if any(
-                keyword in text.upper()
-                for keyword in COMPANY_KEYWORDS
-            ):
-                orgs.append(text)
-
-        # -------------------------
-        # DATES
-        # -------------------------
-
-        elif label == "DATE":
-
-            dates.append(text)
-
-        # -------------------------
-        # LOCATIONS
-        # -------------------------
-
-        elif label == "GPE":
-
-            locations.append(text)
-
-    # -----------------------------------
-    # Remove duplicates
-    # -----------------------------------
-
-    orgs = list(dict.fromkeys(orgs))
-    dates = list(dict.fromkeys(dates))
-    locations = list(dict.fromkeys(locations))
-
-    # -----------------------------------
-    # Effective Date
-    # -----------------------------------
-
-    effective_date = dates[0] if dates else None
-
-    # -----------------------------------
-    # Governing Law
-    # -----------------------------------
-
-    governing_law = None
+def extract_contract_metadata(entities, contract_text):
 
     text = contract_text.replace("\n", " ")
 
-    # State of California
-    state_match = re.search(
-        r"State of\s+([A-Z][a-zA-Z\s]+)",
-        text
-    )
+    companies = []
+    dates = []
 
-    if state_match:
+    # -----------------------------
+    # NER extraction
+    # -----------------------------
 
-        governing_law = (
-            state_match.group(1)
-            .split(" and ")[0]
-            .split(",")[0]
-            .strip()
-        )
+    for entity in entities:
 
-    # Province of British Columbia
-    if not governing_law:
+        value = entity["text"].strip()
+        label = entity["label"]
 
-        province_match = re.search(
-            r"Province of\s+([A-Z][a-zA-Z\s]+)",
+        if label == "ORG":
+
+            upper = value.upper()
+
+            if value in IGNORE_ORGS:
+                continue
+
+            if len(value) < 4:
+                continue
+
+            if any(char.isdigit() for char in value):
+                continue
+
+            if any(word in upper for word in COMPANY_WORDS):
+                companies.append(clean_company(value))
+
+        elif label == "DATE":
+
+            if len(value) > 4:
+                dates.append(value)
+
+    # remove duplicates
+
+    unique = []
+
+    seen = set()
+
+    for c in companies:
+
+        key = c.lower()
+
+        if key not in seen:
+
+            unique.append(c)
+
+            seen.add(key)
+
+    companies = unique
+
+    # ---------------------------------
+    # Regex fallback for companies
+    # ---------------------------------
+
+    if len(companies) < 2:
+
+        regex_companies = re.findall(
+
+            r"\b[A-Z][A-Za-z&.,' ]{2,40}?(?:Inc\.?|Ltd\.?|Corp\.?|Corporation|LLC|Limited)\b",
+
             text
+
         )
 
-        if province_match:
+        for company in regex_companies:
 
-            governing_law = (
-                province_match.group(1)
-                .split(" and ")[0]
-                .split(",")[0]
-                .strip()
-            )
+            company = clean_company(company)
 
-    # Fallback
-    if not governing_law and locations:
+            if company.lower() not in seen:
 
-        governing_law = locations[0]
+                companies.append(company)
 
-    # -----------------------------------
-    # Return
-    # -----------------------------------
+                seen.add(company.lower())
+
+    # ---------------------------------
+    # Effective Date
+    # ---------------------------------
+
+    effective_date = dates[0] if dates else None
+
+    if effective_date is None:
+
+        m = re.search(
+
+            r"effective(?:\s+date)?(?:\s+of|\s+as\s+of)?\s+([A-Z][a-z]+\s+\d{1,2},?\s+\d{4})",
+
+            text,
+
+            re.IGNORECASE,
+
+        )
+
+        if m:
+
+            effective_date = m.group(1)
+
+    # ---------------------------------
+    # Governing Law
+    # ---------------------------------
+
+    governing_law = None
+
+    patterns = [
+
+        r"laws of the State of ([A-Za-z ]+)",
+
+        r"laws of the Province of ([A-Za-z ]+)",
+
+        r"laws of the Commonwealth of ([A-Za-z ]+)",
+
+        r"laws of ([A-Za-z ]+)",
+
+        r"State of ([A-Za-z ]+)",
+
+        r"Province of ([A-Za-z ]+)",
+
+    ]
+
+    for pattern in patterns:
+
+        m = re.search(pattern, text, re.IGNORECASE)
+
+        if m:
+
+            governing_law = m.group(1)
+
+            governing_law = governing_law.split(",")[0]
+
+            governing_law = governing_law.split(" and ")[0]
+
+            governing_law = re.sub(r"\([^)]*\)", "", governing_law)
+
+            governing_law = governing_law.strip()
+
+            break
 
     return {
 
-        "parties": orgs[:2],
+        "parties": companies[:2],
 
         "effective_date": effective_date,
 
-        "governing_law": governing_law
+        "governing_law": governing_law,
+
     }

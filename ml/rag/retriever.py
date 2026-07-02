@@ -1,28 +1,33 @@
+import os
 import json
 import numpy as np
 import faiss
 
-from sentence_transformers import (
-    SentenceTransformer
-)
+from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
-
-index = faiss.read_index(
-    "ml/vector_search/repository.faiss"
-)
-
-with open(
-    "ml/vector_search/repository_chunks.json",
-    "r",
-    encoding="utf-8"
-) as file:
-
-    chunks = json.load(
-        file
+# project root
+ROOT_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        ".."
     )
+)
+
+VECTOR_DIR = os.path.join(ROOT_DIR, "ml", "vector_search")
+
+INDEX_PATH = os.path.join(VECTOR_DIR, "repository.faiss")
+CHUNKS_PATH = os.path.join(VECTOR_DIR, "repository_chunks.json")
+
+print("Loading FAISS from:", INDEX_PATH)
+print("Loading chunks from:", CHUNKS_PATH)
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+index = faiss.read_index(INDEX_PATH)
+
+with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
+    chunks = json.load(f)
 
 
 def retrieve_context(
@@ -42,9 +47,9 @@ def retrieve_context(
     results = []
 
     for idx in indices[0]:
+        if idx == -1:
+            continue
 
-        results.append(
-            chunks[idx]
-        )
+        results.append(chunks[idx])
 
     return results

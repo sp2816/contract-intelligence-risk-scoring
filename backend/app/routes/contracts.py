@@ -1,5 +1,6 @@
 import os
 import uuid
+import traceback
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
@@ -9,10 +10,21 @@ from extensions import db
 import sys
 # Add parent directory of backend (workspace root) to path to load ml modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+
+from ml.risk_scoring.risk_rules import (
+    HIGH_RISK,
+    MEDIUM_RISK,
+    LOW_RISK,
+)
 try:
     from ml.pipeline.contract_analyzer import analyze_contract as run_ml_pipeline
     HAS_ML = True
-except Exception:
+# except Exception:
+#     HAS_ML = False
+except Exception as e:
+    print("\n========== ML IMPORT ERROR ==========")
+    print(e)
+    print("====================================\n")
     HAS_ML = False
 
 contracts_bp = Blueprint('contracts', __name__)
@@ -107,6 +119,7 @@ def upload_contract():
 @contracts_bp.route('/', methods=['GET'])
 @jwt_required()
 def list_contracts():
+    print("Get DB:", db.engine.url)
     """
     GET /api/contracts/
     Returns all contracts for the authenticated user.
@@ -115,6 +128,8 @@ def list_contracts():
     contracts = Contract.query.filter_by(user_id=user_id) \
                               .order_by(Contract.upload_date.desc()) \
                               .all()
+
+
     return jsonify({
         'contracts': [c.to_dict() for c in contracts],
         'total': len(contracts),
@@ -215,29 +230,70 @@ def contract_stats():
 
 # ─── Get Single Contract Detail ───────────────────────────────────────────────
 
+# @contracts_bp.route('/<int:contract_id>', methods=['GET'])
+# @jwt_required()
+# def get_contract(contract_id):
+#     """
+#     GET /api/contracts/<contract_id>
+#     Returns detailed info for a single contract, including clauses, entities, and risk reports.
+#     """
+#     user_id = get_jwt_identity()
+#     contract = Contract.query.filter_by(id=contract_id, user_id=user_id).first()
+#     if not contract:
+#         return jsonify({'message': 'Contract not found.'}), 404
+
+#     clauses = Clause.query.filter_by(contract_id=contract_id).all()
+#     risk_report = RiskReport.query.filter_by(contract_id=contract_id).first()
+#     entities = Entity.query.filter_by(contract_id=contract_id).all()
+
+#     return jsonify({
+#         'contract': contract.to_dict(),
+#         'clauses': [c.to_dict() for c in clauses],
+#         'risk_report': risk_report.to_dict() if risk_report else None,
+#         'entities': [e.to_dict() for e in entities]
+#     }), 200
+
 @contracts_bp.route('/<int:contract_id>', methods=['GET'])
 @jwt_required()
 def get_contract(contract_id):
-    """
-    GET /api/contracts/<contract_id>
-    Returns detailed info for a single contract, including clauses, entities, and risk reports.
-    """
+
     user_id = get_jwt_identity()
-    contract = Contract.query.filter_by(id=contract_id, user_id=user_id).first()
+
+    print("\n========== GET CONTRACT ==========")
+    print("DB:", db.engine.url)
+
+    contract = Contract.query.filter_by(
+        id=contract_id,
+        user_id=user_id
+    ).first()
+
+
+    if contract:
+        print("Status:", contract.status)
+        print("Risk:", contract.risk_score)
+
+    clause_count = Clause.query.filter_by(contract_id=contract_id).count()
+    entity_count = Entity.query.filter_by(contract_id=contract_id).count()
+    report_count = RiskReport.query.filter_by(contract_id=contract_id).count()
+
+    print("Clauses:", clause_count)
+    print("Entities:", entity_count)
+    print("Reports:", report_count)
+    print("=================================\n")
+
     if not contract:
-        return jsonify({'message': 'Contract not found.'}), 404
+        return jsonify({"message": "Contract not found"}), 404
 
     clauses = Clause.query.filter_by(contract_id=contract_id).all()
-    risk_report = RiskReport.query.filter_by(contract_id=contract_id).first()
     entities = Entity.query.filter_by(contract_id=contract_id).all()
+    report = RiskReport.query.filter_by(contract_id=contract_id).first()
 
     return jsonify({
-        'contract': contract.to_dict(),
-        'clauses': [c.to_dict() for c in clauses],
-        'risk_report': risk_report.to_dict() if risk_report else None,
-        'entities': [e.to_dict() for e in entities]
+        "contract": contract.to_dict(),
+        "clauses": [c.to_dict() for c in clauses],
+        "entities": [e.to_dict() for e in entities],
+        "risk_report": report.to_dict() if report else None
     }), 200
-
 
 # ─── Delete Contract ─────────────────────────────────────────────────────────
 
@@ -276,6 +332,7 @@ def delete_contract(contract_id):
 @contracts_bp.route('/<int:contract_id>/analyze', methods=['POST'])
 @jwt_required()
 def analyze_contract(contract_id):
+    print("analyze DB:", db.engine.url)
     """
     POST /api/contracts/<contract_id>/analyze
     Simulates ML processing, updates database with risk score, summary, and extracts clauses.
@@ -298,8 +355,22 @@ def analyze_contract(contract_id):
     if HAS_ML and contract.file_path and os.path.exists(contract.file_path):
         try:
             # Run the active ML analyzer pipeline
+            print("Running ML Pipeline...")
             ml_results = run_ml_pipeline(contract.file_path)
-            
+            # print("\nML RESULTS KEYS:")
+            # print(ml_results.keys())
+            print("\n========== ML RESULTS ==========")
+            print("Risk Score:", ml_results.get("risk_score"))
+            print("Risk Level:", ml_results.get("risk_level"))
+            print("Reasons:", ml_results.get("risk_reasons"))
+            print("Metadata:", ml_results.get("metadata"))
+            print("Entities type:", type(ml_results.get("entities")))
+            print("\nENTITIES:")
+            # for e in ml_results["entities"]:
+            #     print(e)
+            print("Clause predictions:", len(ml_results.get("clause_predictions", [])))
+            print("================================\n")
+                        
             overall_score = ml_results.get("risk_score", 45.0)
             level = ml_results.get("risk_level", "medium")
             reasons = ml_results.get("risk_reasons", [])
@@ -317,22 +388,109 @@ def analyze_contract(contract_id):
                 pred_text = pred.get("text", "")
                 
                 # Check labels for risk assigning
-                if pred_label in ["UNCERTAIN", "Limitation of Liability", "Indemnification"]:
+                if pred_label in HIGH_RISK:
                     r_level = "high"
                     high_clauses += 1
-                elif pred_label in ["Termination", "Warranty"]:
+
+                elif pred_label in MEDIUM_RISK:
                     r_level = "medium"
                     med_clauses += 1
-                else:
+
+                elif pred_label in LOW_RISK:
                     r_level = "low"
                     low_clauses += 1
+
+                else:
+                    r_level = "low"
                 
                 clauses_data.append((pred_label, pred_text, pred_conf, r_level))
 
             # Map entities
+            entities = ml_results.get("entities", [])
+
             entities_data = []
-            for ent_type, ent_val in ml_results.get("entities", {}).items():
-                entities_data.append((ent_type, str(ent_val), 0.95, 1))
+
+            # Save parties
+            entities_data = []
+
+            for e in entities:
+
+                label = e["label"]
+                text = e["text"].strip()
+
+                if label == "ORG":
+
+                    if text.upper() in {
+                        "PARTY",
+                        "WITNESS",
+                        "ARTICLE",
+                        "SECTION",
+                        "TERM",
+                        "AGREEMENT",
+                        "EXHIBIT",
+                        "SCHEDULE"
+                    }:
+                        continue
+
+                    if len(text) < 4:
+                        continue
+
+                if label == "ORG":
+                    entity_type = "COMPANY"
+
+                elif label == "GPE":
+                    entity_type = "JURISDICTION"
+
+                elif label == "DATE":
+                    entity_type = "DATE"
+
+                else:
+                    continue
+
+                conf = e.get("confidence", 0.99)
+                entities_data.append(
+                    (
+                        entity_type,
+                        text,
+                        conf,
+                        1
+                    )
+                )
+
+            metadata = ml_results.get("metadata", {})
+
+            for party in metadata.get("parties", []):
+
+                entities_data.append(
+                    (
+                        "COMPANY",
+                        party,
+                        1.0,
+                        1
+                    )
+                )
+
+            if metadata.get("governing_law"):
+
+                entities_data.append(
+                    (
+                        "JURISDICTION",
+                        metadata["governing_law"],
+                        1.0,
+                        1
+                    )
+                )
+
+            if metadata.get("effective_date"):
+
+                entities_data.append(
+                    (
+                        "DATE",
+                        metadata["effective_date"],
+                        1.0,
+                        1
+                    )
+                )
 
             # Save report
             report = RiskReport(
@@ -355,6 +513,23 @@ def analyze_contract(contract_id):
                 )
                 db.session.add(clause)
 
+            unique_entities = []
+
+            seen = set()
+
+            for entity in entities_data:
+
+                key = (
+                    entity[0],
+                    entity[1].strip().lower()
+                )
+
+                if key not in seen:
+                    seen.add(key)
+                    unique_entities.append(entity)
+
+            entities_data = unique_entities
+
             for e_type, e_value, conf, page in entities_data:
                 entity = Entity(
                     contract_id=contract_id,
@@ -372,10 +547,17 @@ def analyze_contract(contract_id):
             db.session.add(contract)
             
             db.session.commit()
+            print("\n====== SAVED CONTRACT ======")
+            print(contract.risk_score)
+            print(contract.contract_summary)
+            print(contract.status)
+            print("===========================\n")
             ml_processed = True
             
         except Exception as ml_err:
-            current_app.logger.error(f"ML Pipeline execution failed, falling back to simulation: {ml_err}")
+            print("\n========== ML PIPELINE FAILED ==========")
+            traceback.print_exc()
+            print("========================================")
 
     if not ml_processed:
         # Fall back to simulated templates

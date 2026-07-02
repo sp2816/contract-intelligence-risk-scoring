@@ -12,7 +12,7 @@ import { getToken, clearSession } from '../utils/tokenManager'
 const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000,
+  timeout: 120000,
 })
 
 // ─── Request interceptor ─────────────────────────────────────────────────────

@@ -27,6 +27,8 @@ def auto_migrate_schema(app):
                     # Check if table exists
                     cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'")
                     if not cursor.fetchone():
+                        print(f"[AUTO-MIGRATE] Creating table {table_name}")
+                        table.create(db.engine)
                         continue
                     
                     # Get existing columns
@@ -86,12 +88,40 @@ def create_app():
     
     # Create database tables
     with app.app_context():
-        from models.user import User  # ensure model is imported before create_all
-        from models.contract import Contract  # ensure Contract table is created
-        from models.chat import ChatSession, ChatMessage  # ensure Chat tables are created
+        from models.user import User
+        from models.chat import ChatSession, ChatMessage
+
+        # Import ALL models from contract.py
+        from models.contract import (
+            Contract,
+            Clause,
+            Entity,
+            RiskReport,
+        )
+
+        print(Contract.__tablename__)
+        print(Clause.__tablename__)
+        print(Entity.__tablename__)
+        print(RiskReport.__tablename__)
+
+        print("Creating all tables...")
         db.create_all()
+        print("Finished create_all()")
+
+        from sqlalchemy import inspect
+
+        inspector = inspect(db.engine)
+
+        print("\n========== TABLES AFTER CREATE_ALL ==========")
+        print(inspector.get_table_names())
+        print("=============================================\n")
+
+        print("\nDATABASE URI:", app.config["SQLALCHEMY_DATABASE_URI"])
+        print("\n========== REGISTERED TABLES ==========")
+        print(db.metadata.tables.keys())
+        print("=======================================\n")
         auto_migrate_schema(app)
-    
+        
     # Register blueprints
     from routes.auth import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')

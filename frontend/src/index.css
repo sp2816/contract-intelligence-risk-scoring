@@ -336,7 +336,7 @@ select {
 [data-theme="light"] input:focus,
 [data-theme="light"] textarea:focus {
   background-color: #ffffff !important;
-  border-color: #38bdf8 !important;
+  border-color: var(--brand-500) !important;
 }
 
 [data-theme="light"] input::placeholder,

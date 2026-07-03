@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { changePassword } from '../api/auth'
 import { useTheme } from '../context/ThemeContext.jsx'
-import { User as UserIcon, Shield, Mail, Key, Bell, Sun, Moon, Layout, Check, Loader2, Eye, EyeOff } from 'lucide-react'
+import { User as UserIcon, Lock, Mail, Key, Bell, Sun, Moon, Layout, Check, Loader2, Eye, EyeOff } from 'lucide-react'
 
 function Profile() {
   const { user, updatePrefs } = useAuth()
@@ -265,7 +265,7 @@ function Profile() {
           </div>
         </div>
 
-        {/* Security Info Sidebar */}
+        {/* Change Password Sidebar */}
         <aside 
           className={`animate-slide-up rounded-[2rem] border p-6 backdrop-blur-md flex flex-col justify-between h-fit gap-6 transition-all duration-300 ${
             isLight
@@ -275,156 +275,146 @@ function Profile() {
           style={{ animationDelay: '240ms' }}
         >
           <div>
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/10 text-brand-500`}>
-              <Shield className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/10 text-brand-500">
+              <Lock className="h-5 w-5" />
             </div>
-            <h2 className={`mt-4 text-lg font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>Security &amp; Audit</h2>
+            <h2 className={`mt-4 text-lg font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>Change Password</h2>
             <p className={`mt-2 text-xs leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              Manage authentication credentials, configure single sign-on (SSO), and inspect audit trail logs from the corporate console.
+              Update your account password to keep your workspace secure. Use a strong, unique password you don't use elsewhere.
             </p>
           </div>
           <button
             type="button" onClick={() => setShowPasswordModal(true)}
-            className={`w-full rounded-2xl border py-2.5 text-xs font-semibold transition ${
-              isLight
-                ? 'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                : 'border-slate-750 bg-slate-900/40 text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
+            className="w-full rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 py-2.5 text-xs font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:shadow-brand-500/30 hover:brightness-110"
           >
-            Configure Credentials
+            Change Password
           </button>
         </aside>
       </div>
 
       {
     showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75" onClick={() => setShowPasswordModal(false)}>
+          <div
+            className={`w-full max-w-md rounded-[2rem] border p-8 shadow-2xl backdrop-blur-xl transition-all ${
+              isLight
+                ? 'bg-white border-slate-200 shadow-slate-200/50'
+                : 'bg-slate-900 border-slate-700 shadow-slate-950/60'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+            style={{ animation: 'fadeInMeter 0.25s ease-out' }}
+          >
+            <style>{`
+              @keyframes fadeInMeter {
+                from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+                to   { opacity: 1; transform: translateY(0) scale(1); }
+              }
+            `}</style>
 
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-brand-500/20 bg-brand-500/10 text-brand-500">
+                <Lock className="h-5 w-5" />
+              </div>
+              <h2 className={`text-xl font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                Change Password
+              </h2>
+            </div>
 
-    <div className={`w-full max-w-md rounded-3xl p-8 ${
-    isLight
-    ? "bg-white"
-    : "bg-slate-900 border border-slate-700"
-    }`}>
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  type={showCurrent ? 'text' : 'password'}
+                  placeholder="Current Password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className={`w-full rounded-2xl border px-4 py-3 pr-12 text-sm outline-none transition duration-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 ${
+                    isLight
+                      ? 'border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white'
+                      : 'border-slate-700 bg-slate-950/70 text-slate-100 placeholder-slate-500 focus:bg-slate-900/90'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
 
-    <h2 className="text-xl font-bold mb-6">
-    Change Password
-    </h2>
+              <div className="relative">
+                <input
+                  type={showNew ? 'text' : 'password'}
+                  placeholder="New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={`w-full rounded-2xl border px-4 py-3 pr-12 text-sm outline-none transition duration-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 ${
+                    isLight
+                      ? 'border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white'
+                      : 'border-slate-700 bg-slate-950/70 text-slate-100 placeholder-slate-500 focus:bg-slate-900/90'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
 
-    <div className="space-y-4">
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`w-full rounded-2xl border px-4 py-3 pr-12 text-sm outline-none transition duration-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 ${
+                    isLight
+                      ? 'border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white'
+                      : 'border-slate-700 bg-slate-950/70 text-slate-100 placeholder-slate-500 focus:bg-slate-900/90'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
 
-    <div className="relative">
+              {passwordError && (
+                <p className="text-sm font-medium" style={{ color: '#ef4444' }}>{passwordError}</p>
+              )}
 
-    <input
-    type={showCurrent ? "text" : "password"}
-    placeholder="Current Password"
-    value={currentPassword}
-    onChange={(e)=>setCurrentPassword(e.target.value)}
-    className="w-full rounded-xl border px-4 py-3 bg-transparent pr-12"
-    />
+              {passwordSuccess && (
+                <p className="text-sm font-medium" style={{ color: '#10b981' }}>{passwordSuccess}</p>
+              )}
 
-    <button
-    type="button"
-    onClick={()=>setShowCurrent(!showCurrent)}
-    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-    >
-    {showCurrent ? <EyeOff size={18}/> : <Eye size={18}/>}
-    </button>
-
-    </div>
-
-    <div className="relative">
-
-    <input
-    type={showNew ? "text" : "password"}
-    placeholder="New Password"
-    value={newPassword}
-    onChange={(e)=>setNewPassword(e.target.value)}
-    className="w-full rounded-xl border px-4 py-3 bg-transparent pr-12"
-    />
-
-    <button
-    type="button"
-    onClick={()=>setShowNew(!showNew)}
-    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-    >
-    {showNew ? <EyeOff size={18}/> : <Eye size={18}/>}
-    </button>
-
-    </div>
-
-    <div className="relative">
-
-    <input
-    type={showConfirm ? "text" : "password"}
-    placeholder="Confirm Password"
-    value={confirmPassword}
-    onChange={(e)=>setConfirmPassword(e.target.value)}
-    className="w-full rounded-xl border px-4 py-3 bg-transparent pr-12"
-    />
-
-    <button
-    type="button"
-    onClick={()=>setShowConfirm(!showConfirm)}
-    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-    >
-    {showConfirm ? <EyeOff size={18}/> : <Eye size={18}/>}
-    </button>
-
-    </div>
-
-    {passwordError &&
-    <p className="text-red-500 text-sm">
-    {passwordError}
-    </p>
-    }
-
-    {passwordSuccess &&
-    <p className="text-green-500 text-sm">
-    {passwordSuccess}
-    </p>
-    }
-
-    <div className="flex justify-end gap-3 pt-3">
-
-    <button
-
-    onClick={()=>{
-    setShowPasswordModal(false)
-    }}
-
-    className="px-4 py-2 rounded-xl border"
-    >
-
-    Cancel
-
-    </button>
-
-    <button
-
-    onClick={handlePasswordChange}
-
-    disabled={updatingPassword}
-
-    className="px-5 py-2 rounded-xl bg-brand-500 text-white"
-
-    >
-
-    {updatingPassword
-    ? "Updating..."
-    : "Update Password"}
-
-    </button>
-
-    </div>
-
-    </div>
-
-    </div>
-
-    </div>
-
-    )
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setShowPasswordModal(false)}
+                  className={`rounded-2xl border px-5 py-2.5 text-sm font-semibold transition ${
+                    isLight
+                      ? 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      : 'border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePasswordChange}
+                  disabled={updatingPassword}
+                  className="rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:shadow-brand-500/30 hover:brightness-110 disabled:opacity-50"
+                >
+                  {updatingPassword ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
     }
     </section>
   )

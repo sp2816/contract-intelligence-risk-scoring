@@ -1,4 +1,5 @@
 const routePaths = {
+  landing: '/landing',
   dashboard: '/dashboard',
   chatbot: '/chatbot',
   contractAnalysis: '/contract-analysis',

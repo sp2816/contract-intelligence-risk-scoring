@@ -6,7 +6,7 @@ function CheckboxField({ label, checked, onChange, error, description }) {
           type="checkbox"
           checked={checked}
           onChange={onChange}
-          className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-950/80 text-sky-400 focus:ring-sky-300"
+          className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-950/80 text-brand-500 focus:ring-brand-500"
         />
         <span className="leading-6">
           <span className="font-medium text-slate-100">{label}</span>

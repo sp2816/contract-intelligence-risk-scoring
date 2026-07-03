@@ -11,6 +11,7 @@ import ContractAnalysis from '../pages/ContractAnalysis.jsx'
 import Profile from '../pages/Profile.jsx'
 import Contracts from '../pages/Contracts.jsx'
 import Analytics from '../pages/Analytics.jsx'
+import LandingPage from '../pages/LandingPage.jsx'
 import NotFound from '../pages/NotFound.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
 
@@ -19,13 +20,14 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/"
-        element={<Navigate to={user ? '/dashboard' : '/login'} replace />}
+        element={<Navigate to={user ? '/dashboard' : '/landing'} replace />}
       />
       <Route
         element={<ProtectedRoute />}

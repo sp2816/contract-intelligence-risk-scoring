@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { changePassword } from '../api/auth'
 import { useTheme } from '../context/ThemeContext.jsx'
-import { User as UserIcon, Shield, Mail, Key, Bell, Sun, Moon, Layout, Check, Loader2 } from 'lucide-react'
+import { User as UserIcon, Shield, Mail, Key, Bell, Sun, Moon, Layout, Check, Loader2, Eye, EyeOff } from 'lucide-react'
 
 function Profile() {
   const { user, updatePrefs } = useAuth()
@@ -17,6 +18,19 @@ function Profile() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [updatingPassword, setUpdatingPassword] = useState(false)
 
   // Sync if user object changes (e.g. after initial auth load)
   useEffect(() => {
@@ -53,6 +67,49 @@ function Profile() {
       setError(err?.message || 'Failed to save preferences')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePasswordChange = async () => {
+
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match')
+      return
+    }
+
+    try {
+
+      setUpdatingPassword(true)
+
+      await changePassword({
+          currentPassword,
+          newPassword
+      })
+
+      setPasswordSuccess('Password updated successfully.')
+
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+
+      setTimeout(() => {
+        setShowPasswordModal(false)
+        setPasswordSuccess('')
+      }, 1500)
+
+    } catch (err) {
+
+      setPasswordError(
+        err.response?.data?.message || 'Unable to change password'
+      )
+
+    } finally {
+
+      setUpdatingPassword(false)
+
     }
   }
 
@@ -227,7 +284,7 @@ function Profile() {
             </p>
           </div>
           <button
-            type="button"
+            type="button" onClick={() => setShowPasswordModal(true)}
             className={`w-full rounded-2xl border py-2.5 text-xs font-semibold transition ${
               isLight
                 ? 'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -238,6 +295,137 @@ function Profile() {
           </button>
         </aside>
       </div>
+
+      {
+    showPasswordModal && (
+
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+
+    <div className={`w-full max-w-md rounded-3xl p-8 ${
+    isLight
+    ? "bg-white"
+    : "bg-slate-900 border border-slate-700"
+    }`}>
+
+    <h2 className="text-xl font-bold mb-6">
+    Change Password
+    </h2>
+
+    <div className="space-y-4">
+
+    <div className="relative">
+
+    <input
+    type={showCurrent ? "text" : "password"}
+    placeholder="Current Password"
+    value={currentPassword}
+    onChange={(e)=>setCurrentPassword(e.target.value)}
+    className="w-full rounded-xl border px-4 py-3 bg-transparent pr-12"
+    />
+
+    <button
+    type="button"
+    onClick={()=>setShowCurrent(!showCurrent)}
+    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+    >
+    {showCurrent ? <EyeOff size={18}/> : <Eye size={18}/>}
+    </button>
+
+    </div>
+
+    <div className="relative">
+
+    <input
+    type={showNew ? "text" : "password"}
+    placeholder="New Password"
+    value={newPassword}
+    onChange={(e)=>setNewPassword(e.target.value)}
+    className="w-full rounded-xl border px-4 py-3 bg-transparent pr-12"
+    />
+
+    <button
+    type="button"
+    onClick={()=>setShowNew(!showNew)}
+    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+    >
+    {showNew ? <EyeOff size={18}/> : <Eye size={18}/>}
+    </button>
+
+    </div>
+
+    <div className="relative">
+
+    <input
+    type={showConfirm ? "text" : "password"}
+    placeholder="Confirm Password"
+    value={confirmPassword}
+    onChange={(e)=>setConfirmPassword(e.target.value)}
+    className="w-full rounded-xl border px-4 py-3 bg-transparent pr-12"
+    />
+
+    <button
+    type="button"
+    onClick={()=>setShowConfirm(!showConfirm)}
+    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+    >
+    {showConfirm ? <EyeOff size={18}/> : <Eye size={18}/>}
+    </button>
+
+    </div>
+
+    {passwordError &&
+    <p className="text-red-500 text-sm">
+    {passwordError}
+    </p>
+    }
+
+    {passwordSuccess &&
+    <p className="text-green-500 text-sm">
+    {passwordSuccess}
+    </p>
+    }
+
+    <div className="flex justify-end gap-3 pt-3">
+
+    <button
+
+    onClick={()=>{
+    setShowPasswordModal(false)
+    }}
+
+    className="px-4 py-2 rounded-xl border"
+    >
+
+    Cancel
+
+    </button>
+
+    <button
+
+    onClick={handlePasswordChange}
+
+    disabled={updatingPassword}
+
+    className="px-5 py-2 rounded-xl bg-brand-500 text-white"
+
+    >
+
+    {updatingPassword
+    ? "Updating..."
+    : "Update Password"}
+
+    </button>
+
+    </div>
+
+    </div>
+
+    </div>
+
+    </div>
+
+    )
+    }
     </section>
   )
 }

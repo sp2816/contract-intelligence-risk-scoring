@@ -200,3 +200,35 @@ def update_preferences():
     db.session.commit()
     
     return jsonify(user.to_dict()), 200
+
+@auth_bp.route('/change-password', methods=['PUT'])
+@jwt_required()
+def change_password():
+
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    data = request.get_json()
+
+    current_password = data.get("currentPassword")
+    new_password = data.get("newPassword")
+
+    if not current_password or not new_password:
+        return jsonify({"message": "Missing fields"}), 400
+
+    if not user.check_password(current_password):
+        return jsonify({"message": "Current password is incorrect"}), 400
+
+    if len(new_password) < 8:
+        return jsonify({"message": "Password must be at least 8 characters"}), 400
+
+    user.set_password(new_password)
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Password updated successfully"
+    }), 200

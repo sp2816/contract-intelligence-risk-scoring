@@ -74,3 +74,12 @@ export async function forgotPassword(email) {
 export async function resetPassword(payload) {
   return axiosClient.post('/auth/reset-password', payload)
 }
+
+
+/**
+ * Change the current user's password.
+ * @param {{ currentPassword: string, newPassword: string }} payload
+ */
+export async function changePassword(payload) {
+  return axiosClient.put('/auth/change-password', payload)
+}

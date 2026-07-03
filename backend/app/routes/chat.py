@@ -282,15 +282,20 @@ def chat_stream():
             routed = route_question(message)
             print("ROUTED TO:", routed["type"])
 
-            if routed["type"] == "database":
+            if routed["type"] in [
+                "database",
+                "greeting",
+                "goodbye",
+                "thanks",
+                "out_of_domain"
+            ]:
                 response_text = routed["answer"]
 
             else:
+
                 print("Running RAG pipeline...")
 
                 rag_results = run_rag_pipeline(message)
-
-                print(rag_results)
 
                 response_text = rag_results["answer"]
 

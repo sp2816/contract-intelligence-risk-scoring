@@ -1,6 +1,6 @@
 # pyrefly: ignore [missing-import]
 import os
-import sqlite3
+# import sqlite3
 
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -13,17 +13,17 @@ from extensions import db, jwt
 load_dotenv()
 
 
-def resolve_database_uri(raw_uri):
-    if not raw_uri.startswith("sqlite:///"):
-        return raw_uri
+# def resolve_database_uri(raw_uri):
+#     if not raw_uri.startswith("sqlite:///"):
+#         return raw_uri
 
-    db_file = raw_uri[len("sqlite:///") :]
-    if os.path.isabs(db_file):
-        return raw_uri
+#     db_file = raw_uri[len("sqlite:///") :]
+#     if os.path.isabs(db_file):
+#         return raw_uri
 
-    backend_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-    db_path = os.path.abspath(os.path.join(backend_dir, "app", "instance", db_file))
-    return f"sqlite:///{db_path}"
+#     backend_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+#     db_path = os.path.abspath(os.path.join(backend_dir, "app", "instance", db_file))
+#     return f"sqlite:///{db_path}"
 
 
 def sql_type_for_column(column):
@@ -40,57 +40,11 @@ def sql_type_for_column(column):
         return "TIMESTAMP"
     return "TEXT"
 
-
-def auto_migrate_schema(app):
-    """
-    Detects missing SQLite columns by comparing the database schema with the
-    SQLAlchemy models and adds them when needed at startup.
-    """
-    db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
-    if not db_uri.startswith("sqlite:///"):
-        return
-
-    db_file = db_uri[len("sqlite:///") :]
-    if not os.path.exists(db_file):
-        return
-
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
-        cursor = conn.cursor()
-        for table_name, table in db.metadata.tables.items():
-            cursor.execute(
-                f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'"
-            )
-            if not cursor.fetchone():
-                print(f"[AUTO-MIGRATE] Creating table {table_name}")
-                table.create(db.engine)
-                continue
-
-            cursor.execute(f"PRAGMA table_info({table_name})")
-            existing_cols = {row[1] for row in cursor.fetchall()}
-
-            for column in table.columns:
-                if column.name in existing_cols:
-                    continue
-
-                cursor.execute(
-                    f"ALTER TABLE {table_name} ADD COLUMN {column.name} {sql_type_for_column(column)}"
-                )
-                print(f"[AUTO-MIGRATE] Added missing column `{column.name}` to table `{table_name}`")
-
-        conn.commit()
-    except Exception as error:
-        print(f"[AUTO-MIGRATE ERROR] Migration failed: {error}")
-    finally:
-        if conn is not None:
-            conn.close()
-
-
 def create_app():
     app = Flask(__name__)
 
-    db_uri = resolve_database_uri(os.getenv("DATABASE_URL", "sqlite:///lexai.db"))
+    # db_uri = resolve_database_uri(os.getenv("DATABASE_URL", "sqlite:///lexai.db"))
+    db_uri = os.getenv("DATABASE_URL")
     app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
@@ -130,7 +84,6 @@ def create_app():
         print("\n========== REGISTERED TABLES ==========")
         print(db.metadata.tables.keys())
         print("=======================================\n")
-        auto_migrate_schema(app)
 
     from routes.auth import auth_bp
     app.register_blueprint(auth_bp, url_prefix="/api/auth")

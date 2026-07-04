@@ -516,35 +516,7 @@ function LandingPage() {
     { name: 'Priya Sharma', role: 'Senior Legal Analyst', company: 'Apex Partners', text: 'The clause intelligence is remarkable. It catches risk patterns that even experienced reviewers miss. The RAG chatbot feels like having a legal expert on call 24/7.', rating: 5, initials: 'PS' },
   ]
 
-  // const plans = [
-  //   {
-  //     name: 'Starter',
-  //     price: 'Free',
-  //     period: '',
-  //     desc: 'Perfect for individuals and small teams getting started with AI contract review.',
-  //     features: ['5 contracts/month', 'Basic risk scoring', 'Clause classification', 'Email support', 'Single user'],
-  //     cta: 'Start Free',
-  //     highlighted: false,
-  //   },
-  //   {
-  //     name: 'Pro',
-  //     price: '$49',
-  //     period: '/month',
-  //     desc: 'For growing legal teams that need full AI capabilities and advanced analytics.',
-  //     features: ['Unlimited contracts', 'Advanced risk scoring', 'RAG AI chatbot', 'Analytics dashboard', 'Priority support', 'Up to 10 users', 'API access'],
-  //     cta: 'Start Pro Trial',
-  //     highlighted: true,
-  //   },
-  //   {
-  //     name: 'Enterprise',
-  //     price: 'Custom',
-  //     period: '',
-  //     desc: 'For organizations with complex compliance needs and large contract volumes.',
-  //     features: ['Everything in Pro', 'Custom AI models', 'SSO & RBAC', 'Dedicated account manager', 'On-premise deployment', 'SLA guarantee', 'Unlimited users'],
-  //     cta: 'Contact Sales',
-  //     highlighted: false,
-  //   },
-  // ]
+
 
   const faqs = [
     { q: 'How does the AI risk scoring work?', a: 'ContractMind uses fine-tuned Legal-BERT models to classify every clause in your contract against 50+ risk categories. Each clause receives a confidence score, and our proprietary algorithm aggregates these into an overall risk score from 0-100, where higher scores indicate greater risk exposure.' },
@@ -1026,6 +998,7 @@ function LandingPage() {
           </div>
         </div>
       </Section>
+
 
 
       {/* ════════════════════════ 9. FAQ ════════════════════════ */}

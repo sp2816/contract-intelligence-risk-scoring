@@ -18,9 +18,9 @@ sys.path.append(
 try:
     from ml.rag.contract_qa import answer_question as run_rag_pipeline
     HAS_RAG = True
-    print("✅ RAG Loaded")
+    print("[OK] RAG Loaded")
 except Exception as e:
-    print("❌ RAG FAILED")
+    print("[FAIL] RAG FAILED")
     print(e)
     HAS_RAG = False
 

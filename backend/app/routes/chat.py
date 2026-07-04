@@ -279,7 +279,7 @@ def chat_stream():
         try:
             print("\n==========================")
             print("QUESTION:", message)
-            routed = route_question(message)
+            routed = route_question(message, user_id)
             print("ROUTED TO:", routed["type"])
 
             if routed["type"] in [

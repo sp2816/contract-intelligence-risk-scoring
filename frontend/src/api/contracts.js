@@ -92,3 +92,14 @@ export async function getContractDetails(id) {
 }
 
 
+export async function fetchClauseStats() {
+  return axiosClient.get("/contracts/clause-stats")
+}
+
+export async function fetchHeatmap() {
+    return axiosClient.get("/contracts/heatmap")
+}
+
+export async function fetchInsight() {
+    return axiosClient.get("/contracts/insight")
+}

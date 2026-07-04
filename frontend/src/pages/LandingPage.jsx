@@ -3,7 +3,7 @@
 // ContractMind — Premium Landing Page
 //
 // Sections: Hero, Trusted By, Features, Benefits, Product Preview,
-//           How It Works, Testimonials, Pricing, FAQ, Final CTA, Footer
+//           How It Works, Testimonials, FAQ, Final CTA, Footer
 //
 // Design: Extends the existing ContractMind design system (CSS variables,
 //         Tailwind config, lucide-react icons, Inter font, light/dark mode).
@@ -90,7 +90,6 @@ function LandingNavbar({ isLight, toggleTheme }) {
   const navLinks = [
     { label: 'Features', href: '#features' },
     { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Pricing', href: '#pricing' },
     { label: 'FAQ', href: '#faq' },
   ]
 
@@ -178,7 +177,7 @@ function LandingNavbar({ isLight, toggleTheme }) {
             to="/register"
             className="hidden sm:inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:shadow-xl hover:shadow-brand-500/30 hover:brightness-110"
           >
-            Get Started Free
+            Get Started
             <ArrowRight className="h-4 w-4" />
           </Link>
 
@@ -225,7 +224,7 @@ function LandingNavbar({ isLight, toggleTheme }) {
                 onClick={() => setMobileOpen(false)}
                 className="px-4 py-3 text-sm font-semibold rounded-full text-center text-white bg-gradient-to-r from-brand-500 to-brand-600 shadow-lg shadow-brand-500/20"
               >
-                Get Started Free
+                Get Started 
               </Link>
             </div>
           </nav>
@@ -517,35 +516,35 @@ function LandingPage() {
     { name: 'Priya Sharma', role: 'Senior Legal Analyst', company: 'Apex Partners', text: 'The clause intelligence is remarkable. It catches risk patterns that even experienced reviewers miss. The RAG chatbot feels like having a legal expert on call 24/7.', rating: 5, initials: 'PS' },
   ]
 
-  const plans = [
-    {
-      name: 'Starter',
-      price: 'Free',
-      period: '',
-      desc: 'Perfect for individuals and small teams getting started with AI contract review.',
-      features: ['5 contracts/month', 'Basic risk scoring', 'Clause classification', 'Email support', 'Single user'],
-      cta: 'Start Free',
-      highlighted: false,
-    },
-    {
-      name: 'Pro',
-      price: '$49',
-      period: '/month',
-      desc: 'For growing legal teams that need full AI capabilities and advanced analytics.',
-      features: ['Unlimited contracts', 'Advanced risk scoring', 'RAG AI chatbot', 'Analytics dashboard', 'Priority support', 'Up to 10 users', 'API access'],
-      cta: 'Start Pro Trial',
-      highlighted: true,
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      period: '',
-      desc: 'For organizations with complex compliance needs and large contract volumes.',
-      features: ['Everything in Pro', 'Custom AI models', 'SSO & RBAC', 'Dedicated account manager', 'On-premise deployment', 'SLA guarantee', 'Unlimited users'],
-      cta: 'Contact Sales',
-      highlighted: false,
-    },
-  ]
+  // const plans = [
+  //   {
+  //     name: 'Starter',
+  //     price: 'Free',
+  //     period: '',
+  //     desc: 'Perfect for individuals and small teams getting started with AI contract review.',
+  //     features: ['5 contracts/month', 'Basic risk scoring', 'Clause classification', 'Email support', 'Single user'],
+  //     cta: 'Start Free',
+  //     highlighted: false,
+  //   },
+  //   {
+  //     name: 'Pro',
+  //     price: '$49',
+  //     period: '/month',
+  //     desc: 'For growing legal teams that need full AI capabilities and advanced analytics.',
+  //     features: ['Unlimited contracts', 'Advanced risk scoring', 'RAG AI chatbot', 'Analytics dashboard', 'Priority support', 'Up to 10 users', 'API access'],
+  //     cta: 'Start Pro Trial',
+  //     highlighted: true,
+  //   },
+  //   {
+  //     name: 'Enterprise',
+  //     price: 'Custom',
+  //     period: '',
+  //     desc: 'For organizations with complex compliance needs and large contract volumes.',
+  //     features: ['Everything in Pro', 'Custom AI models', 'SSO & RBAC', 'Dedicated account manager', 'On-premise deployment', 'SLA guarantee', 'Unlimited users'],
+  //     cta: 'Contact Sales',
+  //     highlighted: false,
+  //   },
+  // ]
 
   const faqs = [
     { q: 'How does the AI risk scoring work?', a: 'ContractMind uses fine-tuned Legal-BERT models to classify every clause in your contract against 50+ risk categories. Each clause receives a confidence score, and our proprietary algorithm aggregates these into an overall risk score from 0-100, where higher scores indicate greater risk exposure.' },
@@ -553,8 +552,7 @@ function LandingPage() {
     { q: 'Is my data secure?', a: 'Absolutely. All documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We maintain SOC 2 Type II compliance, and your data is never used to train our models. Enterprise customers can opt for on-premise deployment for complete data sovereignty.' },
     { q: 'Can I ask questions about my contracts?', a: 'Yes! Our RAG (Retrieval-Augmented Generation) chatbot lets you ask natural-language questions about any uploaded contract. It retrieves relevant passages and generates accurate, contextualized answers with source citations.' },
     { q: 'How accurate is the clause classification?', a: 'Our Legal-BERT classifier achieves 94% accuracy across 15+ clause categories including indemnification, limitation of liability, termination, confidentiality, and IP assignment. The model is continuously improved with new training data from anonymized contract corpora.' },
-    { q: 'Do you offer a free trial?', a: 'Yes! The Starter plan is completely free and includes 5 contract analyses per month. The Pro plan also offers a 14-day free trial with full access to all features including the AI chatbot and analytics dashboard.' },
-  ]
+     ]
 
   const trustedLogos = [
     'Acme Legal', 'TechVentures', 'GlobalCorp', 'Apex Partners', 'Sterling & Co', 'NovaTech'
@@ -634,7 +632,7 @@ function LandingPage() {
                   to="/register"
                   className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-7 py-3.5 text-sm font-semibold text-white shadow-xl shadow-brand-500/25 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-500/40 hover:brightness-110 hover:-translate-y-0.5"
                 >
-                  Start Free Trial
+                  Start Now
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
@@ -1029,86 +1027,6 @@ function LandingPage() {
         </div>
       </Section>
 
-      {/* ════════════════════════ 8. PRICING ════════════════════════ */}
-      <Section id="pricing" className={`py-20 sm:py-28 ${
-        isLight ? 'bg-slate-50/80' : 'bg-slate-900/30'
-      }`}>
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-          <SectionHeading
-            badge="Pricing"
-            title="Simple, Transparent Pricing"
-            subtitle="Start free and scale as your team grows. No hidden fees, no long-term commitments."
-            isLight={isLight}
-          />
-
-          <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative rounded-2xl border p-6 sm:p-8 transition-all duration-300 hover:-translate-y-1 ${
-                  plan.highlighted
-                    ? isLight
-                      ? 'border-brand-300 bg-white shadow-xl shadow-brand-100/40 ring-2 ring-brand-500/20'
-                      : 'border-brand-500/40 bg-slate-900/80 shadow-2xl shadow-brand-500/10 ring-2 ring-brand-500/20'
-                    : isLight
-                      ? 'border-slate-200 bg-white hover:shadow-lg hover:shadow-slate-100'
-                      : 'border-slate-800 bg-slate-900/60 hover:shadow-lg hover:shadow-slate-950/40'
-                }`}
-              >
-                {plan.highlighted && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-brand-500/30">
-                      <Sparkles className="h-3 w-3" />
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
-                <h3 className={`text-lg font-semibold mb-2 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
-                  {plan.name}
-                </h3>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className={`text-4xl font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className={`text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{plan.period}</span>
-                  )}
-                </div>
-                <p className={`text-sm mb-6 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                  {plan.desc}
-                </p>
-
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <Check className={`h-4 w-4 mt-0.5 shrink-0 ${
-                        plan.highlighted
-                          ? 'text-brand-500'
-                          : isLight ? 'text-emerald-500' : 'text-emerald-400'
-                      }`} />
-                      <span className={`text-sm ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  to="/register"
-                  className={`block w-full text-center py-3 rounded-full text-sm font-semibold transition-all duration-300 ${
-                    plan.highlighted
-                      ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-lg shadow-brand-500/20 hover:shadow-xl hover:shadow-brand-500/30 hover:brightness-110'
-                      : isLight
-                        ? 'border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
-                        : 'border border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
 
       {/* ════════════════════════ 9. FAQ ════════════════════════ */}
       <Section id="faq" className="py-20 sm:py-28">
@@ -1164,7 +1082,7 @@ function LandingPage() {
                   to="/register"
                   className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-bold text-brand-600 shadow-xl shadow-brand-900/20 transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:bg-slate-50"
                 >
-                  Start Free Trial
+                  Start Now
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
@@ -1221,7 +1139,7 @@ function LandingPage() {
                 isLight ? 'text-slate-800' : 'text-slate-200'
               }`}>Product</h4>
               <ul className="space-y-2.5">
-                {['Features', 'Pricing', 'Security', 'Integrations', 'API'].map((item) => (
+                {['Features', 'Security', 'Integrations', 'API'].map((item) => (
                   <li key={item}>
                     <a href={`#${item.toLowerCase()}`} className={`text-sm transition hover:underline underline-offset-4 ${
                       isLight ? 'text-slate-600 hover:text-brand-600' : 'text-slate-400 hover:text-brand-400'

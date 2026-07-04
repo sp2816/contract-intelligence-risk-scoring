@@ -29,7 +29,7 @@ import {
   Tooltip, Legend, LineChart, Line, PieChart, Pie, Cell,
   AreaChart, Area,
 } from 'recharts'
-import { fetchDashboardStats, listContracts } from '../api/contracts'
+import { fetchDashboardStats, listContracts, fetchClauseStats, fetchHeatmap, fetchInsight } from '../api/contracts'
 import { useChartReady } from '../components/layout/PageTransition'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -222,20 +222,8 @@ const COMPLIANCE_AREAS = [
   { name: 'Indemnification', key: 'indemnity' },
 ]
 
-function ComplianceHeatmap({ contracts }) {
-  const data = useMemo(() => {
-    const avgRisk = contracts.length > 0
-      ? contracts.reduce((s, c) => s + (c.risk_score || 0), 0) / contracts.length
-      : 45
-
-    return COMPLIANCE_AREAS.map((area, i) => {
-      const variation = [1.25, 1.1, 0.95, 0.8, 0.65, 1.05]
-      const score = Math.min(100, Math.max(5, Math.round(avgRisk * variation[i] + (i * 3 - 8))))
-      const level = score <= 30 ? 'low' : score <= 70 ? 'medium' : 'high'
-      return { ...area, score, level }
-    })
-  }, [contracts])
-
+function ComplianceHeatmap({ data }) {
+  
   const getHeatColor = (score) => {
     if (score <= 30) return { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', text: '#34d399' }
     if (score <= 70) return { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', text: '#fbbf24' }
@@ -253,9 +241,34 @@ function ComplianceHeatmap({ contracts }) {
             style={{ backgroundColor: colors.bg, borderColor: colors.border, animationDelay: `${i * 80}ms` }}
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{item.name}</p>
-            <p className="mt-1 text-2xl font-extrabold" style={{ color: colors.text }}>
-              {item.score}<span className="text-sm">%</span>
-            </p>
+            {item.clauses === 0 ? (
+
+              <div className="mt-3">
+                  <p className="text-sm font-semibold text-slate-500">
+                      No clauses
+                  </p>
+                  <p className="text-xs text-slate-600">
+                      analyzed
+                  </p>
+              </div>
+
+          ) : (
+
+              <>
+                  <p className="mt-2 text-2xl font-bold text-white">
+                      {item.score}%
+                  </p>
+
+                  <p className="text-xs text-slate-400">
+                      {item.risk} Risk
+                  </p>
+
+                  <p className="mt-1 text-[11px] text-slate-500">
+                      {item.clauses} clause{item.clauses !== 1 ? "s" : ""}
+                  </p>
+              </>
+
+          )}
             <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800/60">
               <div
                 className="h-full rounded-full transition-all duration-[1200ms] ease-out"
@@ -279,6 +292,10 @@ export default function Analytics() {
   const [error, setError] = useState(null)
   const [stats, setStats] = useState(null)
   const [contracts, setContracts] = useState([])
+  const [heatmapData, setHeatmapData] = useState([])
+  const [clauseIntelligence, setClauseIntelligence] = useState([])
+  const [insight, setInsight] = useState("")
+  const [showAllClauses, setShowAllClauses] = useState(false)
 
   // ── Chart gate: true once page-enter transition finishes ───────────────────
   // This is the core fix — charts only mount AFTER the page is fully visible,
@@ -291,12 +308,25 @@ export default function Analytics() {
     setLoading(true)
     setError(null)
     try {
-      const [statsData, listData] = await Promise.all([
-        fetchDashboardStats(),
-        listContracts(),
+      const [
+          statsData,
+          listData,
+          clauseData,
+          heatmap,
+          insightData
+      ] = await Promise.all([
+          fetchDashboardStats(),
+          listContracts(),
+          fetchClauseStats(),
+          fetchHeatmap(),
+          fetchInsight()
       ])
+
+      setClauseIntelligence(clauseData)
       setStats(statsData)
       setContracts(listData?.contracts ?? [])
+      setHeatmapData(heatmap)
+      setInsight(insightData.text)
     } catch (err) {
       console.error('Analytics load error:', err)
       setError(err?.message || 'Failed to load analytics data')
@@ -342,27 +372,9 @@ export default function Analytics() {
       .slice(-8)
       .map(m => ({ month: m.month, uploads: m.uploads, avgRisk: m.scored > 0 ? Math.round(m.totalScore / m.scored) : null }))
 
-    // Fallback demo data
-    if (entries.length < 3) {
-      return [
-        { month: 'Jan', uploads: 3, avgRisk: 38 },
-        { month: 'Feb', uploads: 5, avgRisk: 45 },
-        { month: 'Mar', uploads: 8, avgRisk: 52 },
-        { month: 'Apr', uploads: 6, avgRisk: 41 },
-        { month: 'May', uploads: 11, avgRisk: 58 },
-        { month: 'Jun', uploads: 9, avgRisk: 47 },
-      ]
-    }
+    
     return entries
   }, [contracts])
-
-  const clauseIntelligence = useMemo(() => [
-    { name: 'Confidentiality', value: 38, color: PALETTE.blue.main },
-    { name: 'Liability Caps', value: 27, color: PALETTE.rose.main },
-    { name: 'Termination', value: 18, color: PALETTE.amber.main },
-    { name: 'IP Assignment', value: 12, color: PALETTE.violet.main },
-    { name: 'Force Majeure', value: 5, color: PALETTE.cyan.main },
-  ], [])
 
   const riskVelocity = useMemo(() => {
     if (monthlyTrends.length < 2) return []
@@ -427,7 +439,7 @@ export default function Analytics() {
   const showCharts = !loading && chartReady
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-12">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -533,22 +545,85 @@ export default function Analytics() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-extrabold text-white">100</span>
+                  <span className="text-2xl font-extrabold text-white">{clauseIntelligence.reduce((sum, c) => sum + c.value, 0)}</span>
                   <span className="text-[9px] uppercase tracking-widest text-slate-500">clauses</span>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2.5">
-                {clauseIntelligence.map((item) => (
+              <div className="flex flex-col gap-2.5 pl-10">
+                {clauseIntelligence.slice(0, 5).map((item) => (
                   <div key={item.name} className="flex items-center gap-3">
                     <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color, boxShadow: `0 0 8px ${item.color}40` }} />
                     <div>
-                      <p className="text-xs font-semibold text-slate-300">{item.name}</p>
-                      <p className="text-[10px] text-slate-600">{item.value}% of flagged clauses</p>
+                      <p className="text-l font-semibold text-slate-300">{item.name}</p>
+                      <p className="text-[10px] text-slate-600">{item.value} clause{item.value !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 ))}
+                {clauseIntelligence.length > 5 && (
+                  <button
+                    onClick={() => setShowAllClauses(true)}
+                    className="mt-3 text-xs font-semibold text-brand-500 hover:text-brand-400 transition"
+                  >
+                    Show all ({clauseIntelligence.length})
+                  </button>
+                )}
               </div>
+            </div>
+          )}
+          {showAllClauses && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+
+              <div className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl max-h-[420px] overflow-y-auto">
+
+                <div className="mb-5 flex items-center justify-between">
+
+                  <h2 className="text-xl font-bold text-white">
+                    All Clause Categories
+                  </h2>
+
+                  <button
+                    onClick={() => setShowAllClauses(false)}
+                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
+                  >
+                    ✕
+                  </button>
+
+                </div>
+
+                <div className="max-h-[420px] space-y-2 overflow-y-auto pr-2">
+
+                  {clauseIntelligence.map((item) => (
+
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-800/40 px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+
+                        <span className="text-sm text-white">
+                          {item.name}
+                        </span>
+
+                      </div>
+
+                      <span className="text-sm font-semibold text-slate-400">
+                        {item.value}
+                      </span>
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+              </div>
+
             </div>
           )}
         </ChartPanel>
@@ -600,8 +675,30 @@ export default function Analytics() {
           iconColor={PALETTE.amber.main}
           badge="Line Chart"
         >
-          {!showCharts ? <SkeletonChart height={300} /> : (
-            <div className="h-[300px]">
+
+          {!showCharts ? (
+              <SkeletonChart height={300} />
+          ) : riskVelocity.length < 2 ? (
+
+              <div className="flex h-[300px] flex-col items-center justify-center text-center">
+
+                  <TrendingUp className="mb-4 h-12 w-12 text-slate-600" />
+
+                  <h3 className="text-lg font-semibold text-slate-300">
+                      Not enough historical data
+                  </h3>
+
+                  <p className="mt-2 max-w-xs text-sm text-slate-500">
+                      Risk Velocity compares month-to-month changes.
+                      Analyze contracts over at least two different months
+                      to view this trend.
+                  </p>
+
+              </div>
+
+          ) : (
+
+              <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={riskVelocity}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -614,7 +711,7 @@ export default function Analytics() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          )}
+          )}         
         </ChartPanel>
       </div>
 
@@ -657,15 +754,14 @@ export default function Analytics() {
           badge="Heatmap"
         >
           {!showCharts ? <SkeletonChart height={260} /> : (
-            <ComplianceHeatmap contracts={contracts} />
+            <ComplianceHeatmap data={heatmapData} />
           )}
         </ChartPanel>
       </div>
 
       {/* ── Footer Insight Banner ──────────────────────────────────────── */}
       {!loading && (
-        <div className="animate-slide-up rounded-2xl border border-brand-500/20 bg-gradient-to-r
-          from-brand-500/5 via-transparent to-violet-500/5 p-6">
+        <div className="animate-slide-up rounded-2xl border border-slate-700 bg-slate-900/70 shadow-lg shadow-slate-950/40 p-6">
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-500/10 border border-brand-500/20">
               <Sparkles className="h-5 w-5 text-brand-500" />
@@ -673,12 +769,7 @@ export default function Analytics() {
             <div>
               <h4 className="text-sm font-bold text-slate-200">AI Insight</h4>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                {(highRisk ?? 0) > 0
-                  ? `${highRisk} contract${highRisk > 1 ? 's' : ''} flagged with critical risk scores above 71%. Focus on liability caps and termination clauses — these represent ${Math.round(((highRisk ?? 0) / Math.max(total ?? 1, 1)) * 100)}% of your portfolio risk exposure.`
-                  : (analyzed ?? 0) > 0
-                    ? `All ${analyzed} analyzed contracts are within acceptable risk thresholds. Your portfolio average of ${avgRisk}% indicates strong compliance posture across clause categories.`
-                    : 'Upload and analyze contracts to unlock AI-powered risk insights, clause intelligence, and compliance scoring across your portfolio.'
-                }
+                  {insight}
               </p>
             </div>
           </div>

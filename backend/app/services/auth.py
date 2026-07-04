@@ -1,63 +1,58 @@
-# pyrefly: ignore [missing-import]
+import json
 from datetime import timedelta
-# pyrefly: ignore [missing-import]  
+
 from flask_jwt_extended import create_access_token
+
 from extensions import db
 from models.user import User
 
+
 class AuthService:
-    
     @staticmethod
     def signup(fullname, email, password):
-        """Register a new user with email and password"""
         email = email.strip().lower()
-        # Check if user already exists
+
         if User.query.filter_by(email=email).first():
             return None, 'Email already registered'
-        
-        # Create new user
-        import json
+
         default_prefs = json.dumps({
-            "theme": "dark",
-            "notifications": True,
-            "defaultView": "dashboard"
+            'theme': 'dark',
+            'notifications': True,
+            'defaultView': 'dashboard',
         })
         user = User(fullname=fullname, email=email, preferences=default_prefs)
         user.set_password(password)
-        
+
         db.session.add(user)
         db.session.commit()
-        
-        # Generate token
+
         access_token = create_access_token(
             identity=str(user.id),
-            expires_delta=timedelta(days=30)
+            expires_delta=timedelta(days=30),
         )
-        
+
         return {
             'token': access_token,
-            'user': user.to_dict()
+            'user': user.to_dict(),
         }, None
-    
+
     @staticmethod
     def login(email, password):
-        """Login user with email and password"""
         email = email.strip().lower()
         user = User.query.filter_by(email=email).first()
-        
+
         if not user or not user.check_password(password):
             return None, 'Invalid email or password'
-        
+
         if not user.is_active:
             return None, 'Account is inactive'
-        
-        # Generate token
+
         access_token = create_access_token(
             identity=str(user.id),
-            expires_delta=timedelta(days=30)
+            expires_delta=timedelta(days=30),
         )
-        
+
         return {
             'token': access_token,
-            'user': user.to_dict()
+            'user': user.to_dict(),
         }, None

@@ -18,13 +18,12 @@ function Profile() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
   const [showPasswordModal, setShowPasswordModal] = useState(false)
 
-  const [currentPassword, setCurrentPassword] = useState('')
+
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
@@ -85,13 +84,12 @@ function Profile() {
       setUpdatingPassword(true)
 
       await changePassword({
-          currentPassword,
           newPassword
       })
 
       setPasswordSuccess('Password updated successfully.')
 
-      setCurrentPassword('')
+
       setNewPassword('')
       setConfirmPassword('')
 
@@ -321,26 +319,6 @@ function Profile() {
             </div>
 
             <div className="space-y-4">
-              <div className="relative">
-                <input
-                  type={showCurrent ? 'text' : 'password'}
-                  placeholder="Current Password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className={`w-full rounded-2xl border px-4 py-3 pr-12 text-sm outline-none transition duration-200 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 ${
-                    isLight
-                      ? 'border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white'
-                      : 'border-slate-700 bg-slate-950/70 text-slate-100 placeholder-slate-500 focus:bg-slate-900/90'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrent(!showCurrent)}
-                  className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                  {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
 
               <div className="relative">
                 <input

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { 
   Send, Plus, Trash2, Edit3, Check, X, Copy,
   Menu, Sparkles, Bot, User, MessageSquare,
-  Scale, FileText, ShieldAlert, BookOpen, Search, AlertCircle
+  Clock, FileText, ShieldAlert, BookOpen, Search, AlertCircle
 } from 'lucide-react'
 import MarkdownRenderer from '../components/common/MarkdownRenderer.jsx'
 import { getToken } from '../utils/tokenManager'
@@ -22,30 +22,30 @@ import ErrorState from '../components/common/ErrorState.jsx'
 // Default suggested prompts (for empty state)
 const SUGGESTED_PROMPTS = [
   {
-    title: 'Analyze NDA Risk',
-    desc: 'What are standard risk caps & exceptions for mutual NDAs?',
-    prompt: 'Can you analyze standard risk limits and exceptions for mutual Non-Disclosure Agreements (NDAs)? Outline high risk red flags to watch out for.',
+    title: 'Analyze Highest Risk',
+    desc: 'Show highest risk contracts',
+    prompt: 'Show highest risk contracts',
     icon: ShieldAlert,
     iconColor: 'text-rose-400 bg-rose-950/40'
   },
   {
-    title: 'Boilerplate Liability Cap',
-    desc: 'Provide standard limitation of liability clause drafting.',
-    prompt: 'Provide a boilerplate Limitation of Liability clause under Delaware law that balances buyer and seller obligations, with drafting recommendations.',
-    icon: Scale,
+    title: 'Recent contracts',
+    desc: 'Show recent contracts',
+    prompt: 'Show recent contracts',
+    icon: Clock,
     iconColor: 'text-amber-400 bg-amber-950/40'
   },
   {
-    title: 'Draft Force Majeure',
-    desc: 'Draft a clause addressing pandemic & supply chain disruption.',
-    prompt: 'Please draft a robust Force Majeure clause for a commercial supply agreement that explicitly covers global pandemics, government lockdowns, and supply chain disruptions.',
+    title: 'Explain any clause',
+    desc: 'Explain termination clause in simple terms',
+    prompt: 'Explain termination clause',
     icon: FileText,
     iconColor: 'text-blue-400 bg-blue-950/40'
   },
   {
-    title: 'IP Rights Review',
-    desc: 'Compare work-for-hire vs assignment of copyrights.',
-    prompt: 'Explain the legal difference between "work-made-for-hire" and "assignment of copyrights" under US IP laws in SaaS contractor agreements.',
+    title: 'Contracts within certain range',
+    desc: 'Show contracts with risk score below 50',
+    prompt: 'Show contracts with risk score below 50',
     icon: BookOpen,
     iconColor: 'text-emerald-400 bg-emerald-950/40'
   }

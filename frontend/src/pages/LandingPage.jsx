@@ -3,7 +3,7 @@
 // ContractMind — Premium Landing Page
 //
 // Sections: Hero, Trusted By, Features, Benefits, Product Preview,
-//           How It Works, Testimonials, Pricing, FAQ, Final CTA, Footer
+//           How It Works, Testimonials, FAQ, Final CTA, Footer
 //
 // Design: Extends the existing ContractMind design system (CSS variables,
 //         Tailwind config, lucide-react icons, Inter font, light/dark mode).
@@ -177,7 +177,7 @@ function LandingNavbar({ isLight, toggleTheme }) {
             to="/register"
             className="hidden sm:inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:shadow-xl hover:shadow-brand-500/30 hover:brightness-110"
           >
-            Get Started Free
+            Get Started
             <ArrowRight className="h-4 w-4" />
           </Link>
 
@@ -224,7 +224,7 @@ function LandingNavbar({ isLight, toggleTheme }) {
                 onClick={() => setMobileOpen(false)}
                 className="px-4 py-3 text-sm font-semibold rounded-full text-center text-white bg-gradient-to-r from-brand-500 to-brand-600 shadow-lg shadow-brand-500/20"
               >
-                Get Started Free
+                Get Started 
               </Link>
             </div>
           </nav>
@@ -524,8 +524,7 @@ function LandingPage() {
     { q: 'Is my data secure?', a: 'Absolutely. All documents are encrypted at rest (AES-256) and in transit (TLS 1.3). We maintain SOC 2 Type II compliance, and your data is never used to train our models. Enterprise customers can opt for on-premise deployment for complete data sovereignty.' },
     { q: 'Can I ask questions about my contracts?', a: 'Yes! Our RAG (Retrieval-Augmented Generation) chatbot lets you ask natural-language questions about any uploaded contract. It retrieves relevant passages and generates accurate, contextualized answers with source citations.' },
     { q: 'How accurate is the clause classification?', a: 'Our Legal-BERT classifier achieves 94% accuracy across 15+ clause categories including indemnification, limitation of liability, termination, confidentiality, and IP assignment. The model is continuously improved with new training data from anonymized contract corpora.' },
-    { q: 'Do you offer a free trial?', a: 'Yes! The Starter plan is completely free and includes 5 contract analyses per month. The Pro plan also offers a 14-day free trial with full access to all features including the AI chatbot and analytics dashboard.' },
-  ]
+     ]
 
   const trustedLogos = [
     'Acme Legal', 'TechVentures', 'GlobalCorp', 'Apex Partners', 'Sterling & Co', 'NovaTech'
@@ -605,7 +604,7 @@ function LandingPage() {
                   to="/register"
                   className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-7 py-3.5 text-sm font-semibold text-white shadow-xl shadow-brand-500/25 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-500/40 hover:brightness-110 hover:-translate-y-0.5"
                 >
-                  Start Free Trial
+                  Start Now
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
@@ -1056,7 +1055,7 @@ function LandingPage() {
                   to="/register"
                   className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-bold text-brand-600 shadow-xl shadow-brand-900/20 transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 hover:bg-slate-50"
                 >
-                  Start Free Trial
+                  Start Now
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link

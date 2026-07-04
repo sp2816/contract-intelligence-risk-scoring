@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Briefcase, Mail, Lock, User, ShieldCheck, Sparkles, ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Briefcase, Lock, Mail, ShieldCheck, Sparkles, User } from 'lucide-react'
+
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
-import TextInput from '../components/form/TextInput.jsx'
-import PasswordStrengthMeter from '../components/form/PasswordStrengthMeter.jsx'
 import CheckboxField from '../components/form/CheckboxField.jsx'
+import PasswordStrengthMeter from '../components/form/PasswordStrengthMeter.jsx'
+import TextInput from '../components/form/TextInput.jsx'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -37,7 +38,7 @@ function Register() {
     if (!fullName.trim()) nextErrors.fullName = 'Full name is required.'
     if (!email.trim()) nextErrors.email = 'Email address is required.'
     else if (!emailPattern.test(email)) nextErrors.email = 'Enter a valid email address.'
-    
+
     if (!password) nextErrors.password = 'Password is required.'
     else if (password.length < 8) nextErrors.password = 'Password must be at least 8 characters.'
     if (!confirmPassword) nextErrors.confirmPassword = 'Please confirm your password.'
@@ -66,7 +67,6 @@ function Register() {
     <div className={`relative min-h-screen overflow-hidden px-4 py-10 transition-colors duration-300 sm:px-6 lg:px-8 ${
       isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-100'
     }`}>
-      {/* Background Orbs */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-brand-500/10 via-transparent to-transparent opacity-70" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-80 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-500/5 via-transparent to-transparent opacity-80" />
 

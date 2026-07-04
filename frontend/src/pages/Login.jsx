@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Mail, Lock, ShieldCheck, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react'
+
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 
@@ -15,18 +16,22 @@ function Login() {
   const location = useLocation()
   const from = location.state?.from?.pathname || '/dashboard'
 
+  const saveRememberedDetails = () => {
+    if (rememberMe) {
+      localStorage.setItem('remembered_email', email)
+      localStorage.setItem('remembered_password', password)
+      localStorage.setItem('remember_me', 'true')
+    } else {
+      localStorage.removeItem('remembered_email')
+      localStorage.removeItem('remembered_password')
+      localStorage.setItem('remember_me', 'false')
+    }
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     try {
-      if (rememberMe) {
-        localStorage.setItem('remembered_email', email)
-        localStorage.setItem('remembered_password', password)
-        localStorage.setItem('remember_me', 'true')
-      } else {
-        localStorage.removeItem('remembered_email')
-        localStorage.removeItem('remembered_password')
-        localStorage.setItem('remember_me', 'false')
-      }
+      saveRememberedDetails()
       await login({ email, password, remember: rememberMe })
       navigate(from, { replace: true })
     } catch (err) {
@@ -38,7 +43,6 @@ function Login() {
     <div className={`relative min-h-screen overflow-hidden px-4 py-10 transition-colors duration-300 sm:px-6 lg:px-8 ${
       isLight ? 'bg-slate-50 text-slate-700' : 'bg-slate-950 text-slate-100'
     }`}>
-      {/* Background Orbs */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-brand-500/10 via-transparent to-transparent opacity-70" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-72 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-brand-500/5 via-transparent to-transparent opacity-80 md:w-96" />
 
@@ -49,7 +53,7 @@ function Login() {
             : 'bg-slate-900/80 border-white/10 shadow-slate-950/50'
         }`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(175,23,99,0.1),_transparent_20%),radial-gradient(circle_at_bottom_right,_rgba(99,102,241,0.08),_transparent_22%)]" />
-          
+
           <div className="relative z-10 flex h-full flex-col justify-between gap-6">
             <div>
               <span className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.35em] font-semibold ${

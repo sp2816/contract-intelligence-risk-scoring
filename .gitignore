@@ -101,7 +101,10 @@ ml/**/sample_*.npy
 # =========================
 # Markdown Files
 # =========================
-# Ignore all markdown files recursively
+# Ignore all markdown files
+*.md
 **/*.md
-# Do not ignore the main README.md at the root
-!/README.md
+
+# Do not ignore the README.md file
+!README.md
+!**/README.md

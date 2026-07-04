@@ -97,3 +97,11 @@ ml/embeddings/
 ml/**/sample_*.json
 ml/**/sample_*.txt
 ml/**/sample_*.npy
+
+# =========================
+# Markdown Files
+# =========================
+# Ignore all markdown files recursively
+**/*.md
+# Do not ignore the main README.md at the root
+!/README.md

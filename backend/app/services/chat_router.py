@@ -1,3 +1,4 @@
+import re
 from services.database_chat import answer_database_question
 
 DATABASE_KEYWORDS = [
@@ -16,7 +17,20 @@ DATABASE_KEYWORDS = [
     "dashboard",
     "recent",
     "list contracts",
-    "total contracts"
+    "total contracts",
+    "high risk",
+    "medium risk",
+    "low risk",
+    "safest",
+    "highest risk contract",
+    "lowest risk contract",
+    "recent contracts",
+    "show entities",
+    "entities",
+    "party",
+    "company",
+    "above",
+    "below",
 ]
 
 GREETINGS = [
@@ -65,17 +79,44 @@ LEGAL_KEYWORDS = [
     "breach",
     "summary",
     "analyze",
-    "analyse"
+    "analyse",
+    "employment",
+    "supplier",
+    "service agreement",
+    "license",
+    "franchise",
+    "lease",
+    "vendor",
+    "customer",
+    "collaboration",
+    "strategic alliance",
 ]
 
 def is_database_question(question):
     q = question.lower()
-    return any(keyword in q for keyword in DATABASE_KEYWORDS)
+
+    return (
+        "risk" in q
+        or "contract" in q
+        or "contracts" in q
+        or "entity" in q
+        or "entities" in q
+        or "party" in q
+        or "recent" in q
+        or "uploaded" in q
+        or "count" in q
+        or "how many" in q
+    )
 
 
 def is_greeting(question):
-    q = question.lower()
-    return any(word in q for word in GREETINGS)
+    q = question.lower().strip()
+
+    for greeting in GREETINGS:
+        if re.fullmatch(re.escape(greeting), q):
+            return True
+
+    return False
 
 
 def is_legal_question(question):
@@ -83,13 +124,23 @@ def is_legal_question(question):
     return any(word in q for word in LEGAL_KEYWORDS)
 
 def is_thanks(question):
-    q = question.lower()
-    return any(word in q for word in THANKS)
+    q = question.lower().strip()
+
+    for phrase in THANKS:
+        if re.fullmatch(re.escape(phrase), q):
+            return True
+
+    return False
 
 
 def is_goodbye(question):
-    q = question.lower()
-    return any(word in q for word in GOODBYES)
+    q = question.lower().strip()
+
+    for phrase in GOODBYES:
+        if re.fullmatch(re.escape(phrase), q):
+            return True
+
+    return False
 
 def greeting_response(question):
 
@@ -120,7 +171,7 @@ def greeting_response(question):
         "I can help analyze contracts, explain clauses, review risks, summarize agreements, and answer questions about the contracts stored in your workspace."
     )
 
-def route_question(question):
+def route_question(question: str, user_id: int):
 
     if is_greeting(question):
 
@@ -152,7 +203,7 @@ def route_question(question):
 
         return {
             "type": "database",
-            "answer": answer_database_question(question)
+            "answer": answer_database_question(question, user_id)
         }
 
     if is_legal_question(question):

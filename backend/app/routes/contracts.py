@@ -6,6 +6,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from models.contract import Contract, Clause, RiskReport, Entity
 from extensions import db
+from extensions import db
+from sqlalchemy import func
+from sqlalchemy import or_
 
 import sys
 # Add parent directory of backend (workspace root) to path to load ml modules
@@ -171,7 +174,6 @@ def contract_stats():
         ]
     }
     """
-    from sqlalchemy import func
 
     user_id = get_jwt_identity()
 
@@ -653,3 +655,222 @@ def analyze_contract(contract_id):
         'clauses': [c.to_dict() for c in Clause.query.filter_by(contract_id=contract_id).all()],
         'entities': [e.to_dict() for e in Entity.query.filter_by(contract_id=contract_id).all()]
     }), 200
+
+@contracts_bp.route("/clause-stats", methods=["GET"])
+@jwt_required()
+def clause_stats():
+
+    user_id = get_jwt_identity()
+
+    results = (
+        db.session.query(
+            Clause.clause_type,
+            func.count(Clause.id)
+        )
+        .join(Contract, Clause.contract_id == Contract.id)
+        .filter(Contract.user_id == user_id)
+        .group_by(Clause.clause_type)
+        .all()
+    )
+
+    colors = [
+        "#8b5cf6",
+        "#06b6d4",
+        "#10b981",
+        "#f59e0b",
+        "#ef4444",
+        "#3b82f6",
+        "#ec4899",
+        "#84cc16",
+    ]
+
+    data = []
+
+    for i, (name, count) in enumerate(results):
+
+        data.append({
+            "name": name,
+            "value": count,
+            "color": colors[i % len(colors)]
+        })
+    data.sort(
+        key=lambda x: x["value"],
+        reverse=True
+    )
+
+    return jsonify(data)
+
+@contracts_bp.route("/heatmap", methods=["GET"])
+@jwt_required()
+def heatmap():
+
+    user_id = get_jwt_identity()
+
+    clause_map = {
+        "privacy": {
+            "label": "Privacy",
+            "clauses": [
+                "Confidentiality",
+                "Data Privacy"
+            ]
+        },
+
+        "ip": {
+            "label": "IP Rights",
+            "clauses": [
+                "License Grant",
+                "Ip Ownership Assignment",
+                "Joint Ip Ownership"
+            ]
+        },
+
+        "liability": {
+            "label": "Liability",
+            "clauses": [
+                "Warranty Disclaimer",
+                "Limitation Of Liability",
+                "Insurance"
+            ]
+        },
+
+        "termination": {
+            "label": "Termination",
+            "clauses": [
+                "Termination",
+                "Expiration Date"
+            ]
+        },
+
+        "force_majeure": {
+            "label": "Force Majeure",
+            "clauses": [
+                "Force Majeure"
+            ]
+        },
+
+        "indemnity": {
+            "label": "Indemnification",
+            "clauses": [
+                "Indemnification"
+            ]
+        }
+    }
+
+    result = []
+
+    for key, value in clause_map.items():
+
+        label = value["label"]
+        clause_names = value["clauses"]
+
+        clauses = (
+            Clause.query
+            .join(Contract)
+            .filter(
+                Contract.user_id == user_id,
+                or_(
+                    *[
+                        Clause.clause_type.ilike(f"%{name}%")
+                        for name in clause_names
+                    ]
+                )
+            )
+            .all()
+        )
+
+        if not clauses:
+
+            score = 0
+
+        else:
+
+            total = 0
+
+            for c in clauses:
+
+                if c.risk_level == "high":
+                    total += 100
+
+                elif c.risk_level == "medium":
+                    total += 60
+
+                else:
+                    total += 20
+
+            score = round(total / len(clauses))
+
+        if len(clauses) == 0:
+
+            result.append({
+                "key": key,
+                "name": label,
+                "score": 0,
+                "risk": "No data",
+                "clauses": 0
+            })
+
+        else:
+
+            if score <= 30:
+                risk = "Low"
+
+            elif score <= 70:
+                risk = "Medium"
+
+            else:
+                risk = "High"
+
+            result.append({
+                "key": key,
+                "name": label,
+                "score": score,
+                "risk": risk,
+                "clauses": len(clauses)
+            })
+
+        # avg = (
+        #     db.session.query(func.avg(Contract.risk_score))
+        #     .join(Clause, Clause.contract_id == Contract.id)
+        #     .filter(
+        #         Contract.user_id == user_id,
+        #         or_(
+        #             *[
+        #                 Clause.clause_type.ilike(f"%{name}%")
+        #                 for name in clause_names
+        #             ]
+        #         )
+        #     )
+        #     .scalar()
+        # )
+
+        # result.append({
+        #     "key": key,
+        #     "score": round(avg or 0)
+        # })
+
+    return jsonify(result)
+
+@contracts_bp.route("/insight")
+@jwt_required()
+def ai_insight():
+
+    user_id = get_jwt_identity()
+
+    high = Contract.query.filter(
+        Contract.user_id == user_id,
+        Contract.risk_score >= 71
+    ).count()
+
+    total = Contract.query.filter_by(user_id=user_id).count()
+
+    if high == 0:
+
+        return jsonify({
+            "text":
+            "All analyzed contracts are currently within acceptable risk thresholds."
+        })
+
+    return jsonify({
+        "text":
+        f"{high} contract(s) require immediate review because they exceed the high-risk threshold."
+    })
